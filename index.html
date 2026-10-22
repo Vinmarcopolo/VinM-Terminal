@@ -47,27 +47,27 @@
       }
 
       [data-theme="light"] {
-        /* LIGHT THEME */
-        --bg: #ebe8e1;
-        --panel: rgba(246, 244, 239, 0.95);
-        --panel-solid: #f6f4ef;
-        --text: #1c1e22;
-        --dim: #66655f;
-        --amber: #76602c;
-        --amber-dim: rgba(118, 96, 44, 0.14);
-        --up: #1d7650;
-        --up-dim: rgba(29, 118, 80, 0.18);
-        --down: #a63f39;
-        --down-dim: rgba(166, 63, 57, 0.18);
-        --info: #38587f;
-        --info-dim: rgba(56, 88, 127, 0.12);
-        --border: #d4cfc4;
-        --border-highlight: #b8b1a3;
-        --vignette: radial-gradient(circle at 50% 50%, transparent 75%, rgba(0, 0, 0, 0.14) 100%);
-        --term-bg: #e2ded4;
-        --ticker-bg: #e5e2da;
-        --grid-line: rgba(212, 207, 196, 0.6);
-        --card-hover: #ece8df;
+        /* LIGHT THEME: PURE WHITE BACKGROUND & BLACK TEXT */
+        --bg: #ffffff;
+        --panel: #ffffff;
+        --panel-solid: #ffffff;
+        --text: #000000;
+        --dim: #374151;
+        --amber: #76602c; /* keep existing brown/amber text */
+        --amber-dim: rgba(118, 96, 44, 0.12);
+        --up: #047857;
+        --up-dim: rgba(4, 120, 87, 0.12);
+        --down: #b91c1c;
+        --down-dim: rgba(185, 28, 28, 0.12);
+        --info: #1d4ed8;
+        --info-dim: rgba(29, 78, 216, 0.10);
+        --border: #e5e7eb;
+        --border-highlight: #d1d5db;
+        --vignette: none;
+        --term-bg: #f9fafb;
+        --ticker-bg: #ffffff;
+        --grid-line: rgba(0, 0, 0, 0.05);
+        --card-hover: #f3f4f6;
       }
 
       /* RESET & BASE */
@@ -1533,9 +1533,6 @@
             <button id="btn-toggle-feed" class="btn btn-active" title="Toggle Stream">
               <span>● FEED: LIVE STREAMING</span>
             </button>
-            <button id="btn-admin-portal" class="btn btn-active" title="Open Administrative Room (Owner Clearance Level 0)" onclick="openAdminModal()">
-              <span>⚙ ADMINISTRATIVE ROOM</span>
-            </button>
             <button id="btn-theme" class="btn" title="Toggle Terminal Color Theme (Dark/Light)">
               <span id="theme-btn-label">THEME: DARK</span>
             </button>
@@ -1787,12 +1784,6 @@
               <button class="btn" data-news-filter="high">HIGH IMPACT (RED)</button>
               <button class="btn" data-news-filter="forex">FOREX &amp; MACRO</button>
               <button class="btn" data-news-filter="energy">ENERGY &amp; COMMODITIES</button>
-              <button class="btn btn-active" id="btn-refresh-wire-photos" onclick="refreshAllWirePhotos(true)" title="Cycle all photos to fresh institutional wire shots" style="margin-left: auto;">
-                <span>🔄 REFRESH WIRE PHOTOS</span>
-              </button>
-              <span class="telemetry-badge" id="wire-photos-status" style="border-color: var(--amber); color: var(--amber); font-size: 8.5px;">
-                ● PHOTO WIRE: ROTATING
-              </span>
             </div>
 
             <!-- Featured Photo-Editorial Cards (What's News Today) -->
@@ -1934,52 +1925,7 @@ Drop your question in the box below and let's dissect the numbers together.</div
           </div>
         </section>
 
-        <!-- =============================================================
-             PANEL 10: COMMAND LINE (FULL WIDTH - 12 COLS)
-             Terminal prompt with output area, hint chips, built-in commands & quantitative streaming
-             ============================================================= -->
-        <section class="panel col-12" aria-label="Terminal CLI & Quantitative Query">
-          <div class="panel-header">
-            <div class="panel-title">
-              <span>10 // COMMAND LINE INTERFACE (V.TERM CLI &amp; QUANT ENGINE)</span>
-            </div>
-            <div class="panel-controls">
-              <span>BUILT-INS: help, status, theme, clear</span>
-              <span>ENGINE: QUANTITATIVE PROTOCOL v2.8</span>
-            </div>
-          </div>
-          <div class="panel-body">
-            <div class="terminal-wrap" role="region" aria-label="Terminal Console">
-              <div class="terminal-output" id="term-output" tabindex="0" aria-live="polite">
-                <!-- Terminal historical logs and responses stream here -->
-              </div>
-              <div class="terminal-chips" aria-label="Terminal Quick Commands">
-                <span class="chip-label">HINTS:</span>
-                <button class="term-chip" data-cmd="admin">admin</button>
-                <button class="term-chip" data-cmd="help">help</button>
-                <button class="term-chip" data-cmd="status">status</button>
-                <button class="term-chip" data-cmd="theme">theme</button>
-                <button class="term-chip" data-cmd="clear">clear</button>
-                <button class="term-chip" data-cmd="assess retail vs institutions positioning gap">retail vs inst</button>
-                <button class="term-chip" data-cmd="analyze crude oil and geopolitics risk">oil risk</button>
-                <button class="term-chip" data-cmd="macro outlook for 10Y yields and fed policy">rates outlook</button>
-                <button class="term-chip" data-cmd="breakdown crypto market liquidity and btc dominance">crypto scan</button>
-              </div>
-              <form class="terminal-input-bar" id="term-form" onsubmit="handleTerminalSubmit(event)">
-                <span class="terminal-prompt-indicator">V.TERM&gt;</span>
-                <input
-                  type="text"
-                  id="term-input"
-                  class="terminal-input"
-                  placeholder="Type a command (help, status, theme, clear) or market research query..."
-                  autocomplete="off"
-                  spellcheck="false"
-                />
-                <button type="submit" class="btn">EXEC</button>
-              </form>
-            </div>
-          </div>
-        </section>
+
 
         <!-- =============================================================
              PANEL 10: SOURCES & LEGAL DISCLAIMER (FOOTER)
@@ -2045,174 +1991,7 @@ Drop your question in the box below and let's dissect the numbers together.</div
       </div>
     </div>
 
-    <!-- ===============================================================
-         ADMIN MODAL: SUBSCRIBER ACCESS & LICENSE SEAT MANAGEMENT
-         =============================================================== -->
-    <div class="modal-backdrop" id="admin-modal" onclick="closeAdminModal(event)">
-      <div class="modal-box modal-box-large" onclick="event.stopPropagation()">
-        <div class="modal-header">
-          <div>
-            <span class="font-condensed font-bold" style="font-size: 14px; color: var(--amber); letter-spacing: 0.06em;">
-              [V.TERMINAL ADMINISTRATIVE CONTROL &amp; SUBSCRIBER REVENUE PORTAL]
-            </span>
-            <span class="telemetry-badge" style="margin-left: 8px;">MASTER ADMIN CLEARANCE</span>
-          </div>
-          <button class="btn" onclick="closeAdminModal()">[ESC / CLOSE]</button>
-        </div>
 
-        <div class="modal-body">
-          <!-- Section 1: Financial & Seat Licensing KPIs -->
-          <div class="admin-kpi-strip">
-            <div class="kpi-card">
-              <div class="kpi-label">MONTHLY RECURRING REVENUE (MRR)</div>
-              <div class="kpi-val text-up" id="admin-mrr-val">$147,500 / MO</div>
-              <div class="text-dim" style="font-size: 9.5px;">ANNUAL RUN-RATE: $1.77M ARR</div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-label">ACTIVE SUBSCRIBER SEATS</div>
-              <div class="kpi-val" style="color: var(--amber);" id="admin-seats-val">42 / 50 SEATS</div>
-              <div class="text-dim" style="font-size: 9.5px;">CAPACITY UTILIZATION: 84%</div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-label">LIVE CONCURRENT SESSIONS</div>
-              <div class="kpi-val text-info" id="admin-online-val">18 SESSIONS ACTIVE</div>
-              <div class="text-dim" style="font-size: 9.5px;">NY, LON, TYO, ZURICH GATEWAYS</div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-label">ARPU / AVERAGE SEAT VALUE</div>
-              <div class="kpi-val text-up">$3,511 / SEAT</div>
-              <div class="text-dim" style="font-size: 9.5px;">ENTERPRISE INSTITUTIONAL TIER</div>
-            </div>
-          </div>
-
-          <!-- Section 2: Paywall Policy & Quick Actions -->
-          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel); border: 1px solid var(--border); padding: 8px 10px; gap: 8px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="font-condensed font-bold" style="color: var(--amber);">ACCESS POLICY:</span>
-              <button class="btn btn-active" id="btn-toggle-paywall" onclick="togglePaywallEnforcement()">
-                <span id="paywall-status-label">PAYWALL ENFORCEMENT: ACTIVE (LICENSE REQUIRED)</span>
-              </button>
-            </div>
-            <div style="display: flex; gap: 6px;">
-              <button class="btn" onclick="testPaywallLockscreen()">
-                <span>🔒 PREVIEW SUBSCRIBER PAYWALL GATE</span>
-              </button>
-              <button class="btn text-amber" onclick="resetDefaultSubscribers()">
-                <span>RESTORE DEFAULT ACCOUNTS</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Section 3: Issue New License Key Form -->
-          <div>
-            <div class="font-condensed font-bold text-amber" style="font-size: 12px; margin-bottom: 4px;">
-              + ISSUE NEW SUBSCRIBER LICENSE KEY &amp; ALLOCATE SEATS
-            </div>
-            <form id="admin-new-sub-form" class="admin-form-grid" onsubmit="handleCreateSubscriber(event)">
-              <div>
-                <div class="kpi-label">FIRM / SUBSCRIBER NAME</div>
-                <input type="text" id="new-sub-name" class="admin-input" placeholder="e.g. Bridgewater Alpha" required />
-              </div>
-              <div>
-                <div class="kpi-label">CONTACT / EMAIL</div>
-                <input type="email" id="new-sub-email" class="admin-input" placeholder="desk@fund.com" required />
-              </div>
-              <div>
-                <div class="kpi-label">SUBSCRIPTION TIER</div>
-                <select id="new-sub-tier" class="admin-input" style="height: 25px;">
-                  <option value="Pro Trader ($2,500/mo)">Pro Trader ($2,500/mo - 1 Seat)</option>
-                  <option value="Institutional Desk ($5,000/mo)" selected>Institutional Desk ($5,000/mo - 5 Seats)</option>
-                  <option value="Enterprise Matrix ($10,000/mo)">Enterprise Matrix ($10,000/mo - 15 Seats)</option>
-                </select>
-              </div>
-              <div>
-                <div class="kpi-label">SEATS</div>
-                <input type="number" id="new-sub-seats" class="admin-input" min="1" max="50" value="5" required />
-              </div>
-              <div>
-                <button type="submit" class="btn btn-active" style="height: 25px;">ISSUE KEY</button>
-              </div>
-            </form>
-          </div>
-
-          <!-- Section 4: Live Active Subscribers Registry -->
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
-              <span class="font-condensed font-bold text-amber" style="font-size: 12px;">
-                ACTIVE SUBSCRIBERS REGISTRY &amp; CONCURRENT DESK SEATS (<span id="sub-count-display">7</span> FIRMS)
-              </span>
-              <span class="text-dim" style="font-size: 10px;">REAL-TIME CONNECTION PROTOCOL</span>
-            </div>
-            <div style="overflow-x: auto; max-height: 260px; border: 1px solid var(--border);">
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>FIRM / SUBSCRIBER</th>
-                    <th>CONTACT HANDLE</th>
-                    <th>TIER / MRR</th>
-                    <th>SEATS</th>
-                    <th>IP GATEWAY</th>
-                    <th>ACCESS KEY</th>
-                    <th>STATUS</th>
-                    <th style="text-align: right;">MANAGEMENT</th>
-                  </tr>
-                </thead>
-                <tbody id="subscribers-tbody">
-                  <!-- Dynamically populated from SUBSCRIBERS_DATABASE -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Section 5: Real-Time Authentication Audit Log -->
-          <div>
-            <div class="font-condensed font-bold text-amber" style="font-size: 11px; margin-bottom: 3px;">
-              REAL-TIME CONNECTION &amp; ACCESS AUDIT LOG:
-            </div>
-            <div id="admin-audit-log" style="background: var(--term-bg); border: 1px solid var(--border); padding: 6px 8px; font-family: 'JetBrains Mono'; font-size: 10.5px; line-height: 1.4; max-height: 90px; overflow-y: auto; color: var(--dim);">
-              <!-- Live telemetry logs stream here -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===============================================================
-         PAYWALL LOCKSCREEN GATE MODAL (Enforces Paid Access)
-         =============================================================== -->
-    <div class="modal-backdrop" id="paywall-modal" style="display: none; z-index: 2000;">
-      <div class="modal-box" style="max-width: 540px; border-color: var(--amber);">
-        <div class="modal-header">
-          <span class="font-condensed font-bold" style="font-size: 14px; color: var(--amber); letter-spacing: 0.08em;">
-            [V.TERMINAL // INSTITUTIONAL ACCESS GATEWAY]
-          </span>
-          <span class="telemetry-badge" style="border-color: var(--down); color: var(--down);">RESTRICTED</span>
-        </div>
-        <div class="modal-body" style="gap: 12px; padding: 16px;">
-          <div style="font-size: 11.5px; line-height: 1.5; color: var(--text);">
-            THIS TERMINAL IS RESERVED EXCLUSIVELY FOR LICENSED INSTITUTIONAL SUBSCRIBERS AND QUANTITATIVE DESKS.
-          </div>
-          <div style="background: var(--panel); border: 1px solid var(--border); padding: 10px;">
-            <div class="kpi-label">ENTER SUBSCRIBER ACCESS KEY OR OWNER PASSKEY:</div>
-            <div style="display: flex; gap: 6px; margin-top: 6px;">
-              <input type="text" id="paywall-key-input" class="admin-input" placeholder="e.g. VTERM-ROOT-0001 or VTERM-ENT-9412" autocomplete="off" />
-              <button class="btn btn-active" onclick="validatePaywallKey()">UNLOCK</button>
-            </div>
-            <div id="paywall-error-msg" style="color: var(--down); font-size: 10.5px; margin-top: 4px; display: none;">
-              ERR: INVALID OR REVOKED LICENSE TOKEN.
-            </div>
-          </div>
-
-          <div style="font-size: 10.5px; color: var(--dim); line-height: 1.4;">
-            QUICK ACCESS TESTING (ONE-CLICK):
-            <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
-              <button class="btn" onclick="useDemoKey('VTERM-ROOT-0001')">USE MASTER OWNER KEY</button>
-              <button class="btn" onclick="useDemoKey('VTERM-ENT-9412')">USE CITADEL DESK KEY</button>
-              <button class="btn text-amber" onclick="closePaywallGate()">BYPASS DEMO</button>
-            </div>
-          </div>
-        </div>
-      </div>
     <!-- ===============================================================
          LANDING PAGE AUTH GATEWAY MODAL (GMAIL SIGN IN & CREATE ACCOUNT)
          =============================================================== -->
@@ -3162,83 +2941,37 @@ Senior officials at Japan's Ministry of Finance delivered official warnings agai
         }
       }
 
-      function cycleStoryPhoto(storyId, e) {
-        if (e) {
-          e.stopPropagation();
-          e.preventDefault();
+      // Dynamic day-seeded photo index so photos update fresh every day
+      const nowSeed = new Date();
+      const daySeed = nowSeed.getUTCFullYear() * 1000 + (nowSeed.getUTCMonth() + 1) * 31 + nowSeed.getUTCDate();
+      VTERMINAL_DATA.featuredNews.forEach((story, idx) => {
+        if (story.photos && story.photos.length > 0) {
+          story.currentPhotoIdx = (daySeed + idx) % story.photos.length;
         }
-        const story = VTERMINAL_DATA.featuredNews.find(s => s.id === storyId);
-        if (!story || !story.photos || story.photos.length <= 1) return;
-        story.currentPhotoIdx = (story.currentPhotoIdx + 1) % story.photos.length;
-        const nextUrl = story.photos[story.currentPhotoIdx];
+      });
 
-        const img = document.getElementById(`news-img-${story.id}`);
-        const btn = document.getElementById(`photo-cycle-btn-${story.id}`);
-        const badge = document.getElementById(`photo-badge-${story.id}`);
-
-        if (img) {
-          img.style.opacity = '0.2';
-          setTimeout(() => {
-            img.src = nextUrl;
-            img.style.opacity = '0.92';
-          }, 120);
-        }
-        if (btn) {
-          btn.textContent = `PHOTO ${story.currentPhotoIdx + 1}/${story.photos.length} ↻`;
-        }
-        if (badge) {
-          badge.textContent = `PHOTO ${story.currentPhotoIdx + 1}/${story.photos.length} · ROTATED`;
-        }
-      }
-
-      function refreshAllWirePhotos(manual = false) {
+      function refreshAllWirePhotos() {
         VTERMINAL_DATA.featuredNews.forEach(story => {
           if (story.photos && story.photos.length > 1) {
             story.currentPhotoIdx = (story.currentPhotoIdx + 1) % story.photos.length;
             const img = document.getElementById(`news-img-${story.id}`);
-            const btn = document.getElementById(`photo-cycle-btn-${story.id}`);
-            const badge = document.getElementById(`photo-badge-${story.id}`);
             if (img) {
-              img.style.opacity = '0.25';
+              img.style.opacity = '0.35';
               setTimeout(() => {
                 img.src = story.photos[story.currentPhotoIdx];
-                img.style.opacity = '0.92';
-              }, 120);
-            }
-            if (btn) {
-              btn.textContent = `PHOTO ${story.currentPhotoIdx + 1}/${story.photos.length} ↻`;
-            }
-            if (badge) {
-              badge.textContent = `PHOTO ${story.currentPhotoIdx + 1}/${story.photos.length} · FRESH`;
+                img.style.opacity = '0.94';
+              }, 180);
             }
           }
         });
-
-        const status = document.getElementById('wire-photos-status');
-        if (status) {
-          status.style.color = 'var(--up)';
-          status.style.borderColor = 'var(--up)';
-          status.textContent = '● WIRE PHOTOS UPDATED (FRESH ROTATION)';
-          setTimeout(() => {
-            if (status) {
-              status.style.color = 'var(--amber)';
-              status.style.borderColor = 'var(--amber)';
-              status.textContent = '● PHOTO WIRE: ROTATING';
-            }
-          }, 3000);
-        }
-
-        if (manual) {
-          printToTerminal(`[PHOTO WIRE] Successfully synchronized fresh institutional photography across all macro stories.`);
-        }
       }
 
-      // Auto-update news photos every 12 seconds so imagery is continually fresh and engaging
+      // Silent smooth photo auto-rotation in background without user knowledge
       setInterval(() => {
         if (document.visibilityState === 'visible') {
-          refreshAllWirePhotos(false);
+          refreshAllWirePhotos();
         }
-      }, 12000);
+      }, 9000);
 
       function renderFeaturedNews() {
         const container = document.getElementById('news-featured-container');
@@ -3256,20 +2989,12 @@ Senior officials at Japan's Ministry of Finance delivered official warnings agai
 
         container.innerHTML = filtered.map(item => {
           const currentPhoto = (item.photos && item.photos[item.currentPhotoIdx]) || item.photos?.[0] || item.image || item.fallbackUrl;
-          const totalPhotos = item.photos ? item.photos.length : 1;
-          const photoNum = (item.currentPhotoIdx || 0) + 1;
 
           return `
             <article class="news-card-featured" onclick="openIntelModal('${item.id}')">
               <div class="news-img-box">
                 <span class="news-impact-tag ${item.impact.includes('HIGH') ? 'impact-high' : 'impact-med'}">
                   ● ${item.impact}
-                </span>
-                <button class="photo-cycle-btn" id="photo-cycle-btn-${item.id}" onclick="cycleStoryPhoto('${item.id}', event)" title="Click to rotate to next photograph">
-                  PHOTO ${photoNum}/${totalPhotos} ↻
-                </button>
-                <span class="photo-cycle-badge" id="photo-badge-${item.id}">
-                  PHOTO ${photoNum}/${totalPhotos} · AUTO-ROTATION
                 </span>
                 <img
                   id="news-img-${item.id}"
@@ -3298,6 +3023,28 @@ Senior officials at Japan's Ministry of Finance delivered official warnings agai
                 </div>
               </div>
             </article>
+          `;
+        }).join('');
+      }
+
+      function renderLiveWireNews() {
+        const container = document.getElementById('news-tape-container');
+        if (!container || !VTERMINAL_DATA || !VTERMINAL_DATA.news) return;
+
+        container.innerHTML = VTERMINAL_DATA.news.map((n, idx) => {
+          let tagClass = 'tag-neutral';
+          const t = (n.tag || '').toUpperCase();
+          if (t === 'BULLISH' || t === 'DOVISH') tagClass = 'tag-bullish';
+          else if (t === 'BEARISH' || t === 'HAWKISH' || t === 'SANCTIONS') tagClass = 'tag-bearish';
+          else if (t === 'URGENT' || t === 'BREAKING') tagClass = 'tag-urgent';
+
+          return `
+            <div class="news-row" onclick="openWireStory(${idx})" title="Click to view breaking dispatch intel">
+              <span class="news-time">${n.time || ''}</span>
+              <span class="news-src font-bold">${n.src || 'WIRE'}</span>
+              <span class="news-headline" title="${n.headline || ''}">${n.headline || ''}</span>
+              <span class="news-tag ${tagClass}">${n.tag || 'INFO'}</span>
+            </div>
           `;
         }).join('');
       }
@@ -3341,7 +3088,13 @@ Senior officials at Japan's Ministry of Finance delivered official warnings agai
         if (!wire) return;
 
         document.getElementById('modal-tag').textContent = `[LIVE WIRE BREAKING DISPATCH] - ${wire.src}`;
-        document.getElementById('modal-img').src = '/src/assets/images/news_forex_trading_desks_1792650842165.jpg';
+        const modalImg = document.getElementById('modal-img');
+        if (modalImg) {
+          modalImg.src = '/assets/images/news_trading_desks.jpg';
+          modalImg.onerror = function() {
+            modalImg.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';
+          };
+        }
         document.getElementById('modal-title').textContent = wire.headline;
         document.getElementById('modal-meta').innerHTML = `
           <span>TIMESTAMP: ${wire.time}</span>
