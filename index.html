@@ -1,0 +1,2394 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>V.TERMINAL - Institutional Market Intelligence</title>
+    <meta name="description" content="Bloomberg-style market intelligence terminal with dense multi-asset tracking, macro risks, order flow, live tape, and terminal AI command line." />
+    <meta property="og:title" content="V.TERMINAL - Institutional Market Intelligence" />
+    <meta property="og:description" content="Bloomberg-style market intelligence terminal with dense multi-asset tracking, macro risks, order flow, live tape, and terminal AI command line." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Google Fonts: JetBrains Mono (Data & Body) & Barlow Condensed (Headings & Titles) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,500&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* =====================================================================
+         CSS VARIABLES & THEMES (No rounded SaaS corners, dense terminal feel)
+         ===================================================================== */
+      :root {
+        /* Default: DARK THEME */
+        --bg: #090b0e;
+        --panel: rgba(15, 18, 24, 0.92);
+        --panel-solid: #0f1218;
+        --text: #e8e5de;
+        --dim: #8b909a;
+        --amber: #cdb88a;
+        --amber-dim: rgba(205, 184, 138, 0.15);
+        --up: #62b890;
+        --up-dim: rgba(98, 184, 144, 0.16);
+        --down: #d9736c;
+        --down-dim: rgba(217, 115, 108, 0.16);
+        --info: #8ea7c8;
+        --info-dim: rgba(142, 167, 200, 0.14);
+        --border: #1e232b;
+        --border-highlight: #323946;
+        --vignette: radial-gradient(circle at 50% 50%, transparent 60%, rgba(0, 0, 0, 0.65) 100%);
+        --canvas-particle: rgba(142, 167, 200, 0.18);
+        --canvas-line: rgba(30, 35, 43, 0.35);
+        --term-bg: #07090c;
+        --ticker-bg: #0c0f14;
+      }
+
+      [data-theme="light"] {
+        /* LIGHT THEME */
+        --bg: #ebe8e1;
+        --panel: rgba(246, 244, 239, 0.94);
+        --panel-solid: #f6f4ef;
+        --text: #1c1e22;
+        --dim: #66655f;
+        --amber: #76602c;
+        --amber-dim: rgba(118, 96, 44, 0.14);
+        --up: #1d7650;
+        --up-dim: rgba(29, 118, 80, 0.14);
+        --down: #a63f39;
+        --down-dim: rgba(166, 63, 57, 0.14);
+        --info: #38587f;
+        --info-dim: rgba(56, 88, 127, 0.12);
+        --border: #d4cfc4;
+        --border-highlight: #b8b1a3;
+        --vignette: radial-gradient(circle at 50% 50%, transparent 70%, rgba(0, 0, 0, 0.12) 100%);
+        --canvas-particle: rgba(56, 88, 127, 0.14);
+        --canvas-line: rgba(212, 207, 196, 0.55);
+        --term-bg: #e2ded4;
+        --ticker-bg: #e5e2da;
+      }
+
+      /* RESET & BASE */
+      *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        border-radius: 0 !important; /* Zero pill & zero rounded SaaS styling */
+      }
+
+      html, body {
+        width: 100%;
+        min-height: 100%;
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: 'JetBrains Mono', monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas;
+        font-size: 12px;
+        line-height: 1.35;
+        font-variant-numeric: tabular-nums;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      /* Subtle Vignette Overlay */
+      #vignette-overlay {
+        position: fixed;
+        inset: 0;
+        background: var(--vignette);
+        pointer-events: none;
+        z-index: 999;
+      }
+
+      /* Ambient Background Canvas */
+      #ambient-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      /* APP WRAPPER */
+      #app-root {
+        position: relative;
+        z-index: 10;
+        width: 100%;
+        max-width: 1800px;
+        margin: 0 auto;
+        padding: 6px 10px 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      /* TYPOGRAPHY */
+      .font-condensed {
+        font-family: 'Barlow Condensed', sans-serif;
+      }
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* COLOR UTILS */
+      .text-amber { color: var(--amber); }
+      .text-up { color: var(--up); }
+      .text-down { color: var(--down); }
+      .text-dim { color: var(--dim); }
+      .text-info { color: var(--info); }
+      .bg-panel { background: var(--panel); }
+      .border-panel { border: 1px solid var(--border); }
+
+      /* FLASH ANIMATIONS (Flashing green/red on simulated price tick) */
+      @keyframes flashUpAnimation {
+        0% { background-color: var(--up-dim); color: var(--up); }
+        100% { background-color: transparent; }
+      }
+      @keyframes flashDownAnimation {
+        0% { background-color: var(--down-dim); color: var(--down); }
+        100% { background-color: transparent; }
+      }
+      .flash-up {
+        animation: flashUpAnimation 1.2s ease-out;
+      }
+      .flash-down {
+        animation: flashDownAnimation 1.2s ease-out;
+      }
+
+      /* 12-COLUMN GRID SYSTEM */
+      .grid-12 {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 6px;
+        width: 100%;
+      }
+      .col-12 { grid-column: span 12; }
+      .col-7  { grid-column: span 7; }
+      .col-5  { grid-column: span 5; }
+
+      @media (max-width: 1100px) {
+        .col-7, .col-5 {
+          grid-column: span 12;
+        }
+      }
+
+      /* =====================================================================
+         PANELS (Dense 1px border, uppercase condensed title with amber accent)
+         ===================================================================== */
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        backdrop-filter: blur(2px);
+      }
+
+      .panel-header {
+        height: 28px;
+        background: var(--panel-solid);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 8px;
+        user-select: none;
+      }
+
+      .panel-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--amber);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .panel-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      .panel-body {
+        padding: 6px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      /* INTERACTIVE BUTTONS & CONTROLS */
+      .btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        padding: 3px 8px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        line-height: 1;
+        transition: border-color 0.15s, background-color 0.15s;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        border-color: var(--amber);
+        color: var(--amber);
+      }
+      .btn:focus-visible {
+        outline: 1px solid var(--amber);
+      }
+      .btn-active {
+        background: var(--amber-dim);
+        border-color: var(--amber);
+        color: var(--amber);
+      }
+
+      /* =====================================================================
+         TOP BAR & MARKET SESSIONS STRIP
+         ===================================================================== */
+      .topbar {
+        background: var(--panel-solid);
+        border: 1px solid var(--border);
+        padding: 6px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .topbar-main {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .brand-group {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .logo-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: var(--amber);
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .sample-pill {
+        border: 1px solid var(--amber);
+        color: var(--amber);
+        font-size: 10px;
+        padding: 1px 4px;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+      }
+
+      .topbar-telemetry {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 11px;
+      }
+
+      .clock-item {
+        color: var(--text);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .clock-label {
+        color: var(--dim);
+        font-size: 10px;
+      }
+
+      .data-age {
+        color: var(--dim);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .data-age-val {
+        color: var(--info);
+        font-weight: 600;
+      }
+
+      /* Sessions Strip */
+      .sessions-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid var(--border);
+        padding-top: 5px;
+        gap: 12px;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      .sessions-items {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .session-node {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 11px;
+      }
+
+      .session-city {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .session-status-open {
+        color: var(--up);
+        font-weight: 700;
+        font-size: 10px;
+      }
+
+      .session-status-closed {
+        color: var(--dim);
+        font-size: 10px;
+      }
+
+      .ny-countdown-container {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--dim);
+        padding-left: 12px;
+        border-left: 1px solid var(--border);
+      }
+
+      .ny-countdown-val {
+        color: var(--amber);
+        font-weight: 700;
+      }
+
+      /* =====================================================================
+         PANEL 1: MARKETS (TICKER TAPE + DENSE DATA TABLE)
+         ===================================================================== */
+      .ticker-tape-wrap {
+        background: var(--ticker-bg);
+        border: 1px solid var(--border);
+        overflow: hidden;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        position: relative;
+      }
+
+      .ticker-tape-track {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        white-space: nowrap;
+        animation: tickerScroll 50s linear infinite;
+      }
+      .ticker-tape-track:hover {
+        animation-play-state: paused;
+      }
+
+      @keyframes tickerScroll {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+
+      .ticker-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+      }
+      .ticker-sym {
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      /* FINANCIAL TABLES */
+      .term-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+
+      .term-table th {
+        text-align: left;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--dim);
+        padding: 4px 6px;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel-solid);
+      }
+      .term-table th.num, .term-table td.num {
+        text-align: right;
+      }
+
+      .term-table td {
+        padding: 4px 6px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        white-space: nowrap;
+      }
+
+      .term-table tr:hover td {
+        background-color: var(--border);
+      }
+
+      .table-cat-header td {
+        background: var(--panel-solid);
+        color: var(--amber);
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 4px 6px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      /* MINI SPARKLINE SVG */
+      .sparkline-svg {
+        width: 54px;
+        height: 14px;
+        vertical-align: middle;
+      }
+
+      /* =====================================================================
+         PANEL 2: SECTORS (DIVERGING BARS)
+         ===================================================================== */
+      .sector-row {
+        display: grid;
+        grid-template-columns: 100px 50px 60px 1fr;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 4px;
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+      }
+      .sector-row:hover {
+        background: var(--border);
+      }
+      .sector-name {
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .sector-sym {
+        color: var(--dim);
+        font-size: 10px;
+      }
+
+      /* Diverging Bar System: midline at 50% */
+      .diverging-bar-track {
+        position: relative;
+        height: 12px;
+        background: var(--border);
+        width: 100%;
+        display: flex;
+        align-items: center;
+      }
+      .diverging-midline {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: var(--border-highlight);
+        z-index: 2;
+      }
+      .diverging-bar-fill {
+        position: absolute;
+        height: 8px;
+        top: 2px;
+        z-index: 1;
+      }
+      .fill-up {
+        left: 50%;
+        background-color: var(--up);
+      }
+      .fill-down {
+        right: 50%;
+        background-color: var(--down);
+      }
+
+      /* =====================================================================
+         PANEL 3: RETAIL VS INSTITUTIONS (FULL WIDTH)
+         ===================================================================== */
+      .retail-inst-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      @media (max-width: 860px) {
+        .retail-inst-container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .subpanel {
+        background: var(--panel-solid);
+        border: 1px solid var(--border);
+        padding: 6px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .subpanel-header {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--amber);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 3px;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+      }
+      @media (max-width: 600px) {
+        .kpi-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .kpi-card {
+        border: 1px solid var(--border);
+        padding: 4px 6px;
+        background: var(--panel);
+      }
+      .kpi-label {
+        color: var(--dim);
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+      .kpi-val {
+        font-size: 13px;
+        font-weight: 700;
+        margin-top: 1px;
+      }
+
+      .divergence-summary-bar {
+        border: 1px solid var(--border);
+        background: var(--amber-dim);
+        padding: 6px 10px;
+        font-size: 11px;
+        color: var(--text);
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .divergence-badge {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-weight: 700;
+        color: var(--amber);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+      }
+
+      /* =====================================================================
+         PANEL 4: WORLD RISK & PANEL 5: CRYPTO
+         ===================================================================== */
+      .risk-item {
+        border-bottom: 1px solid var(--border);
+        padding: 6px 4px;
+        display: grid;
+        grid-template-columns: 90px 1fr 140px;
+        gap: 8px;
+        align-items: baseline;
+      }
+      @media (max-width: 760px) {
+        .risk-item {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .risk-item:last-child {
+        border-bottom: none;
+      }
+
+      .severity-badge {
+        display: inline-block;
+        padding: 2px 5px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: 1px solid;
+        text-align: center;
+      }
+      .sev-high {
+        color: var(--down);
+        border-color: var(--down);
+        background: var(--down-dim);
+      }
+      .sev-elevated {
+        color: var(--amber);
+        border-color: var(--amber);
+        background: var(--amber-dim);
+      }
+      .sev-moderate {
+        color: var(--info);
+        border-color: var(--info);
+        background: var(--info-dim);
+      }
+      .sev-watch {
+        color: var(--dim);
+        border-color: var(--border-highlight);
+      }
+
+      .risk-desc {
+        color: var(--text);
+        font-size: 11px;
+      }
+      .risk-impact {
+        color: var(--dim);
+        font-size: 10px;
+        text-align: right;
+      }
+
+      /* =====================================================================
+         PANEL 6: NEWS TAPE & PANEL 7: WEEK IN ONE SCREEN
+         ===================================================================== */
+      .news-filter-bar {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 4px;
+      }
+
+      .news-tape-list {
+        display: flex;
+        flex-direction: column;
+        max-height: 290px;
+        overflow-y: auto;
+      }
+
+      .news-row {
+        padding: 5px 4px;
+        border-bottom: 1px solid var(--border);
+        display: grid;
+        grid-template-columns: 60px 80px 1fr 65px;
+        gap: 6px;
+        align-items: baseline;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .news-row:hover {
+        background: var(--border);
+      }
+
+      .news-time {
+        color: var(--dim);
+        font-size: 10px;
+      }
+      .news-src {
+        color: var(--amber);
+        font-weight: 600;
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+      .news-headline {
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .news-tag {
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        text-align: center;
+        padding: 1px 4px;
+        border: 1px solid;
+      }
+      .tag-bullish { color: var(--up); border-color: var(--up); }
+      .tag-bearish { color: var(--down); border-color: var(--down); }
+      .tag-neutral { color: var(--dim); border-color: var(--border-highlight); }
+      .tag-urgent  { color: var(--down); border-color: var(--down); background: var(--down-dim); font-weight: 800; }
+
+      /* =====================================================================
+         PANEL 8: FEED STATUS (FULL WIDTH)
+         ===================================================================== */
+      .feeds-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+      }
+      @media (max-width: 900px) {
+        .feeds-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 500px) {
+        .feeds-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .feed-card {
+        border: 1px solid var(--border);
+        background: var(--panel-solid);
+        padding: 5px 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+      }
+      .feed-name {
+        color: var(--text);
+        font-weight: 500;
+      }
+      .feed-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .feed-status-ok {
+        color: var(--up);
+        font-weight: 700;
+      }
+      .feed-status-delayed {
+        color: var(--amber);
+        font-weight: 700;
+      }
+      .feed-status-stale {
+        color: var(--down);
+        font-weight: 700;
+      }
+
+      /* =====================================================================
+         PANEL 9: COMMAND LINE & TERMINAL (FULL WIDTH)
+         ===================================================================== */
+      .terminal-wrap {
+        background: var(--term-bg);
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        height: 320px;
+        position: relative;
+      }
+
+      .terminal-output {
+        flex: 1;
+        padding: 10px;
+        overflow-y: auto;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11.5px;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: var(--text);
+      }
+
+      .terminal-chips {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-top: 1px solid var(--border);
+        background: var(--panel-solid);
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+      .chip-label {
+        font-size: 10px;
+        color: var(--dim);
+        text-transform: uppercase;
+      }
+      .term-chip {
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--amber);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        padding: 2px 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .term-chip:hover {
+        border-color: var(--amber);
+        background: var(--amber-dim);
+      }
+
+      .terminal-input-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-top: 1px solid var(--border);
+        background: var(--panel-solid);
+      }
+      .terminal-prompt-indicator {
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--amber);
+        font-weight: 700;
+        user-select: none;
+      }
+      .terminal-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+      }
+
+      /* Blinking terminal cursor */
+      .term-cursor {
+        display: inline-block;
+        width: 8px;
+        height: 14px;
+        background: var(--amber);
+        vertical-align: -2px;
+        animation: cursorBlink 0.9s infinite;
+      }
+      @keyframes cursorBlink {
+        0%, 49% { opacity: 1; }
+        50%, 100% { opacity: 0; }
+      }
+
+      /* =====================================================================
+         PANEL 10: SOURCES & FOOTER DISCLAIMER
+         ===================================================================== */
+      .sources-footer {
+        border: 1px solid var(--border);
+        background: var(--panel-solid);
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 11px;
+      }
+      .sources-list {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        flex-wrap: wrap;
+        color: var(--dim);
+      }
+      .sources-title {
+        color: var(--amber);
+        font-family: 'Barlow Condensed', sans-serif;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .disclaimer-text {
+        color: var(--dim);
+        font-size: 10px;
+        line-height: 1.4;
+        border-top: 1px solid var(--border);
+        padding-top: 6px;
+      }
+
+      /* SCROLLBAR CUSTOMIZATION */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--panel-solid);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-highlight);
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--amber);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Faint Ambient Canvas Background -->
+    <canvas id="ambient-canvas" aria-hidden="true"></canvas>
+
+    <!-- Subtle Vignette Frame -->
+    <div id="vignette-overlay" aria-hidden="true"></div>
+
+    <div id="app-root">
+      <!-- ===============================================================
+           TOP BAR: Logo, Live Clock, Data Age, Theme Toggle, Sessions Strip
+           =============================================================== -->
+      <header class="topbar" role="banner">
+        <div class="topbar-main">
+          <div class="brand-group">
+            <span class="logo-title font-condensed">V.TERMINAL</span>
+            <span class="sample-pill">SAMPLE SIMULATION</span>
+          </div>
+
+          <div class="topbar-telemetry">
+            <div class="clock-item">
+              <span class="clock-label">NYC:</span>
+              <span id="clock-ny" class="font-mono">--:--:-- EDT</span>
+            </div>
+            <div class="clock-item">
+              <span class="clock-label">UTC:</span>
+              <span id="clock-utc" class="font-mono">--:--:-- UTC</span>
+            </div>
+            <div class="data-age">
+              <span>DATA AGE:</span>
+              <span id="data-age-display" class="data-age-val">0.0s</span>
+            </div>
+            <button id="btn-toggle-feed" class="btn btn-active" title="Toggle Live Simulation Ticks">
+              <span>● FEED: LIVE</span>
+            </button>
+            <button id="btn-theme" class="btn" title="Toggle Terminal Color Theme (Dark/Light)">
+              <span id="theme-btn-label">THEME: DARK</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Market Sessions Strip -->
+        <nav class="sessions-strip" aria-label="Global Market Trading Sessions">
+          <div class="sessions-items">
+            <div class="session-node" id="session-ny">
+              <span class="session-city">NEW YORK</span>
+              <span class="session-time" id="time-ny">--:--</span>
+              <span class="session-status" id="status-ny">● OPEN</span>
+            </div>
+            <div class="session-node" id="session-lon">
+              <span class="session-city">LONDON</span>
+              <span class="session-time" id="time-lon">--:--</span>
+              <span class="session-status" id="status-lon">○ CLSD</span>
+            </div>
+            <div class="session-node" id="session-tyo">
+              <span class="session-city">TOKYO</span>
+              <span class="session-time" id="time-tyo">--:--</span>
+              <span class="session-status" id="status-tyo">● OPEN</span>
+            </div>
+            <div class="session-node" id="session-hk">
+              <span class="session-city">HONG KONG</span>
+              <span class="session-time" id="time-hk">--:--</span>
+              <span class="session-status" id="status-hk">● OPEN</span>
+            </div>
+            <div class="session-node" id="session-fra">
+              <span class="session-city">FRANKFURT</span>
+              <span class="session-time" id="time-fra">--:--</span>
+              <span class="session-status" id="status-fra">○ CLSD</span>
+            </div>
+          </div>
+
+          <div class="ny-countdown-container">
+            <span id="ny-countdown-label">NEXT NY CLOSE:</span>
+            <span id="ny-countdown-timer" class="ny-countdown-val">00h 00m 00s</span>
+          </div>
+        </nav>
+      </header>
+
+      <!-- MAIN 12-COLUMN DASHBOARD GRID -->
+      <main class="grid-12" role="main">
+
+        <!-- =============================================================
+             PANEL 1: MARKETS (7 COLS)
+             Ticker tape on top, then table of indices, FX, commodities, rates
+             ============================================================= -->
+        <section class="panel col-7" aria-label="Markets & Asset Quotes">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>01 // MARKETS & CROSS-ASSET MONITOR</span>
+            </div>
+            <div class="panel-controls">
+              <span>STREAM: L1 ACTIVE</span>
+              <span>FILTER: ALL</span>
+            </div>
+          </div>
+
+          <!-- Scrolling Ticker Tape on Top -->
+          <div class="ticker-tape-wrap" aria-hidden="true">
+            <div class="ticker-tape-track" id="ticker-tape-content">
+              <!-- Dynamically populated or mirrored -->
+            </div>
+          </div>
+
+          <div class="panel-body" style="padding-top: 4px;">
+            <table class="term-table" id="markets-table">
+              <thead>
+                <tr>
+                  <th>SYMBOL</th>
+                  <th>NAME</th>
+                  <th class="num">LAST</th>
+                  <th class="num">CHG</th>
+                  <th class="num">% CHG</th>
+                  <th class="num">24H HIGH</th>
+                  <th class="num">24H LOW</th>
+                  <th class="num">TREND</th>
+                </tr>
+              </thead>
+              <tbody id="markets-tbody">
+                <!-- Dynamically populated from VTERMINAL_DATA.markets -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- =============================================================
+             PANEL 2: SECTORS (5 COLS)
+             Sector performance with diverging bars
+             ============================================================= -->
+        <section class="panel col-5" aria-label="Sector Performance">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>02 // US EQUITY SECTORS (S&P 500)</span>
+            </div>
+            <div class="panel-controls">
+              <span>BENCHMARK: SPY</span>
+              <span>PERIOD: 1D</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div style="display: grid; grid-template-columns: 100px 50px 60px 1fr; font-size: 10px; color: var(--dim); padding: 2px 4px; border-bottom: 1px solid var(--border); font-family: 'Barlow Condensed'; text-transform: uppercase;">
+              <span>SECTOR</span>
+              <span>TICKER</span>
+              <span style="text-align: right;">1D %</span>
+              <span style="text-align: center;">DIVERGING DELTA (-3% | +3%)</span>
+            </div>
+            <div id="sectors-container">
+              <!-- Dynamically populated from VTERMINAL_DATA.sectors -->
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================
+             PANEL 3: RETAIL VS INSTITUTIONS (FULL WIDTH - 12 COLS)
+             Side-by-side sub-panels and divergence summary line
+             ============================================================= -->
+        <section class="panel col-12" aria-label="Retail versus Institutional Positioning">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>03 // ORDER FLOW & POSITIONING: RETAIL VS INSTITUTIONS</span>
+            </div>
+            <div class="panel-controls">
+              <span>SAMPLE WINDOW: 24H CONSOLIDATED</span>
+              <span>CONFIDENCE: 98.4%</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="retail-inst-container">
+              <!-- Retail Sub-panel -->
+              <div class="subpanel">
+                <div class="subpanel-header">
+                  <span>RETAIL TRADER FLOW & DERIVATIVES SKEW</span>
+                  <span class="text-up">FLOW: +$1.42B (NET LONG)</span>
+                </div>
+                <div class="kpi-grid" id="retail-kpis">
+                  <!-- Dynamically populated -->
+                </div>
+                <div style="font-size: 11px; color: var(--text); border-top: 1px solid var(--border); padding-top: 4px;">
+                  <span class="text-dim">TOP RETAIL CONCENTRATION:</span>
+                  <span style="color: var(--amber);">NVDA (Calls), TSLA (0DTE), TQQQ (+3x Bull), PLTR, AMD</span>
+                </div>
+              </div>
+
+              <!-- Institutions Sub-panel -->
+              <div class="subpanel">
+                <div class="subpanel-header">
+                  <span>INSTITUTIONAL & DARK POOL FLOW</span>
+                  <span class="text-down">FLOW: -$2.18B (NET HEDGED)</span>
+                </div>
+                <div class="kpi-grid" id="inst-kpis">
+                  <!-- Dynamically populated -->
+                </div>
+                <div style="font-size: 11px; color: var(--text); border-top: 1px solid var(--border); padding-top: 4px;">
+                  <span class="text-dim">BLOCK ACTIONS:</span>
+                  <span style="color: var(--info);">Dark pool cross sell blocks in mega-cap tech; collar hedges active in SPX & NDX</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Full Width Divergence Summary Line -->
+            <div class="divergence-summary-bar">
+              <span class="divergence-badge">[DIVERGENCE GAP: +2.9σ]</span>
+              <span id="divergence-summary-text">
+                DIVERGENCE ALERT: Retail flow exhibits aggressive speculative momentum (+2.1σ call skew & 0DTE leverage), while Institutional Dark Pool and Smart Money flow indicators show defensive index collar execution and persistent de-risking into market highs.
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================
+             PANEL 4: WORLD RISK (7 COLS)
+             Geopolitical and macro risk items with severity tags
+             ============================================================= -->
+        <section class="panel col-7" aria-label="World Geopolitical & Macro Risk">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>04 // WORLD MACRO & GEOPOLITICAL RISK RADAR</span>
+            </div>
+            <div class="panel-controls">
+              <span>SURVEILLANCE: REAL-TIME</span>
+              <span>DEFCON: ELEVATED</span>
+            </div>
+          </div>
+          <div class="panel-body" id="risk-container">
+            <!-- Dynamically populated from VTERMINAL_DATA.worldRisk -->
+          </div>
+        </section>
+
+        <!-- =============================================================
+             PANEL 5: CRYPTO (5 COLS)
+             Top coins with price and 24h change
+             ============================================================= -->
+        <section class="panel col-5" aria-label="Digital Assets & Cryptocurrency">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>05 // DIGITAL ASSETS & CRYPTO SPOT</span>
+            </div>
+            <div class="panel-controls">
+              <span>AGGREGATE: SPOT TAPE</span>
+              <span>FUNDING: 8H BIAS</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <table class="term-table">
+              <thead>
+                <tr>
+                  <th>ASSET</th>
+                  <th class="num">PRICE</th>
+                  <th class="num">24H CHG</th>
+                  <th class="num">24H VOL</th>
+                  <th class="num">DOM %</th>
+                  <th class="num">FUNDING</th>
+                </tr>
+              </thead>
+              <tbody id="crypto-tbody">
+                <!-- Dynamically populated from VTERMINAL_DATA.crypto -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- =============================================================
+             PANEL 6: NEWS TAPE (7 COLS)
+             Timestamped headlines with source and sentiment tag
+             ============================================================= -->
+        <section class="panel col-7" aria-label="Market News & Intelligence Tape">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>06 // LIVE WIRE NEWS TAPE</span>
+            </div>
+            <div class="panel-controls">
+              <span id="news-counter">7 HEADLINES</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="news-filter-bar">
+              <button class="btn btn-active" data-news-filter="all">ALL</button>
+              <button class="btn" data-news-filter="bullish">BULLISH</button>
+              <button class="btn" data-news-filter="bearish">BEARISH</button>
+              <button class="btn" data-news-filter="urgent">URGENT</button>
+            </div>
+            <div class="news-tape-list" id="news-tape-container">
+              <!-- Dynamically populated from VTERMINAL_DATA.news -->
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================
+             PANEL 7: WEEK IN ONE SCREEN (5 COLS)
+             Key calendar events for the week
+             ============================================================= -->
+        <section class="panel col-5" aria-label="Macroeconomic Calendar">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>07 // WEEK IN ONE SCREEN (MACRO CALENDAR)</span>
+            </div>
+            <div class="panel-controls">
+              <span>TIME: LOCAL / EDT</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <table class="term-table">
+              <thead>
+                <tr>
+                  <th>DATE</th>
+                  <th>REG</th>
+                  <th>EVENT</th>
+                  <th class="num">CONS</th>
+                  <th class="num">PREV</th>
+                  <th class="num">IMP</th>
+                </tr>
+              </thead>
+              <tbody id="calendar-tbody">
+                <!-- Dynamically populated from VTERMINAL_DATA.calendar -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- =============================================================
+             PANEL 8: FEED STATUS (FULL WIDTH - 12 COLS)
+             Status of each data feed (OK, delayed, stale) + last-updated
+             ============================================================= -->
+        <section class="panel col-12" aria-label="Data Feed Pipeline Telemetry">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>08 // DATA FEED INGESTION PIPELINE & LATENCY STATUS</span>
+            </div>
+            <div class="panel-controls">
+              <span>NODES: 8/8 NOMINAL</span>
+              <span>TRANSPORT: WEBSOCKET / TCP</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="feeds-grid" id="feeds-grid-container">
+              <!-- Dynamically populated from VTERMINAL_DATA.feedStatus -->
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================
+             PANEL 9: COMMAND LINE (FULL WIDTH - 12 COLS)
+             Terminal prompt with output area, hint chips, built-in commands & Gemini streaming
+             ============================================================= -->
+        <section class="panel col-12" aria-label="Terminal CLI & Intelligence Query">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>09 // COMMAND LINE INTERFACE (V.TERM CLI & GEMINI INTELLIGENCE)</span>
+            </div>
+            <div class="panel-controls">
+              <span>BUILT-INS: help, status, theme, clear</span>
+              <span>AI BACKEND: GEMINI 3.8 FLASH</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="terminal-wrap" role="region" aria-label="Terminal Console">
+              <div class="terminal-output" id="term-output" tabindex="0" aria-live="polite">
+                <!-- Terminal historical logs and responses stream here -->
+              </div>
+              <div class="terminal-chips" aria-label="Terminal Quick Commands">
+                <span class="chip-label">HINTS:</span>
+                <button class="term-chip" data-cmd="help">help</button>
+                <button class="term-chip" data-cmd="status">status</button>
+                <button class="term-chip" data-cmd="theme">theme</button>
+                <button class="term-chip" data-cmd="clear">clear</button>
+                <button class="term-chip" data-cmd="assess retail vs institutions positioning gap">retail vs inst</button>
+                <button class="term-chip" data-cmd="analyze crude oil and geopolitics risk">oil risk</button>
+                <button class="term-chip" data-cmd="macro outlook for 10Y yields and fed policy">rates outlook</button>
+                <button class="term-chip" data-cmd="breakdown crypto market liquidity and btc dominance">crypto scan</button>
+              </div>
+              <form class="terminal-input-bar" id="term-form" onsubmit="handleTerminalSubmit(event)">
+                <span class="terminal-prompt-indicator">V.TERM&gt;</span>
+                <input
+                  type="text"
+                  id="term-input"
+                  class="terminal-input"
+                  placeholder="Type a command (help, status, theme, clear) or financial query for Gemini intelligence..."
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button type="submit" class="btn">EXEC</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================
+             PANEL 10: SOURCES & LEGAL DISCLAIMER (FOOTER)
+             ============================================================= -->
+        <footer class="col-12 sources-footer" role="contentinfo">
+          <div class="sources-list">
+            <span class="sources-title">DATA SOURCES & INGESTION REFERENCES:</span>
+            <span>Refinitiv Real-Time Consolidated Tape</span>
+            <span>·</span>
+            <span>Bloomberg L.P. Mock Reference Schema</span>
+            <span>·</span>
+            <span>Federal Reserve Economic Data (FRED)</span>
+            <span>·</span>
+            <span>Bank for International Settlements (BIS)</span>
+            <span>·</span>
+            <span>DTCC Trade Information Warehouse</span>
+            <span>·</span>
+            <span>CBOE Global Indices</span>
+            <span>·</span>
+            <span>CFTC Commitments of Traders (COT)</span>
+          </div>
+          <div class="disclaimer-text">
+            <strong>LEGAL & REGULATORY DISCLAIMER:</strong> V.TERMINAL IS A HIGH-DENSITY MARKET INTELLIGENCE SIMULATION DASHBOARD. ALL DISPLAYED QUOTES, ESTIMATES, RISK SCORES, AND ORDER FLOW DATA ARE SAMPLE PLACEHOLDERS FOR SYSTEM DEMONSTRATION AND FINANCIAL MODELING. THIS APPLICATION DOES NOT PROVIDE INVESTMENT, TAX, LEGAL, OR BROKERAGE ADVICE. MARKET VOLATILITY CARRIES SUBSTANTIAL RISK OF FINANCIAL LOSS.
+          </div>
+        </footer>
+
+      </main>
+    </div>
+
+    <!-- =================================================================
+         DATA & APPLICATION LOGIC (Vanilla JS)
+         ================================================================= -->
+    <script>
+      /* ===============================================================
+         1. REALISTIC PLACEHOLDER SAMPLE DATA (Clearly labeled object)
+         =============================================================== */
+      const VTERMINAL_DATA = {
+        markets: [
+          // US & Global Indices
+          { category: 'MAJOR INDICES', sym: 'SPX', name: 'S&P 500 Index', last: 5864.20, chg: 24.50, pct: 0.42, high: 5872.10, low: 5840.15, trend: [5842, 5849, 5855, 5851, 5860, 5864] },
+          { category: 'MAJOR INDICES', sym: 'NDX', name: 'Nasdaq 100 Index', last: 20412.10, chg: 144.20, pct: 0.71, high: 20455.00, low: 20280.40, trend: [20300, 20340, 20380, 20350, 20390, 20412] },
+          { category: 'MAJOR INDICES', sym: 'DJI', name: 'Dow Jones Industrial', last: 42924.80, chg: -64.30, pct: -0.15, high: 43050.20, low: 42880.10, trend: [43010, 42980, 42950, 42910, 42940, 42924] },
+          { category: 'MAJOR INDICES', sym: 'RUT', name: 'Russell 2000 Small Cap', last: 2244.60, chg: -8.10, pct: -0.36, high: 2260.00, low: 2238.20, trend: [2255, 2250, 2242, 2240, 2248, 2244] },
+          { category: 'MAJOR INDICES', sym: 'SX5E', name: 'Euro Stoxx 50', last: 4945.30, chg: 18.20, pct: 0.37, high: 4955.10, low: 4920.80, trend: [4922, 4930, 4938, 4940, 4942, 4945] },
+          { category: 'MAJOR INDICES', sym: 'N225', name: 'Nikkei 225 (Tokyo)', last: 38981.50, chg: 212.80, pct: 0.55, high: 39120.00, low: 38750.00, trend: [38780, 38850, 38910, 38940, 38960, 38981] },
+
+          // Rates & Sovereign Yields
+          { category: 'RATES & YIELDS', sym: 'US10Y', name: 'US 10-Year Benchmark', last: 4.082, chg: -0.021, pct: -0.51, high: 4.115, low: 4.075, trend: [4.110, 4.105, 4.095, 4.090, 4.085, 4.082] },
+          { category: 'RATES & YIELDS', sym: 'US02Y', name: 'US 2-Year Benchmark', last: 3.945, chg: -0.014, pct: -0.35, high: 3.972, low: 3.938, trend: [3.965, 3.960, 3.952, 3.948, 3.946, 3.945] },
+          { category: 'RATES & YIELDS', sym: 'US30Y', name: 'US 30-Year Bond', last: 4.380, chg: -0.018, pct: -0.41, high: 4.408, low: 4.372, trend: [4.405, 4.398, 4.390, 4.385, 4.382, 4.380] },
+          { category: 'RATES & YIELDS', sym: 'DE10Y', name: 'German Bund 10-Year', last: 2.184, chg: 0.012, pct: 0.55, high: 2.195, low: 2.168, trend: [2.170, 2.175, 2.180, 2.178, 2.182, 2.184] },
+
+          // Currencies & FX
+          { category: 'FOREIGN EXCHANGE', sym: 'DXY', name: 'US Dollar Index', last: 103.42, chg: 0.08, pct: 0.08, high: 103.65, low: 103.25, trend: [103.30, 103.35, 103.45, 103.40, 103.38, 103.42] },
+          { category: 'FOREIGN EXCHANGE', sym: 'EURUSD', name: 'Euro / US Dollar', last: 1.0824, chg: -0.0013, pct: -0.12, high: 1.0855, low: 1.0812, trend: [1.0845, 1.0838, 1.0829, 1.0820, 1.0822, 1.0824] },
+          { category: 'FOREIGN EXCHANGE', sym: 'USDJPY', name: 'US Dollar / Japanese Yen', last: 152.88, chg: 0.42, pct: 0.28, high: 153.15, low: 152.30, trend: [152.40, 152.60, 152.75, 152.90, 152.82, 152.88] },
+          { category: 'FOREIGN EXCHANGE', sym: 'GBPUSD', name: 'British Pound / USD', last: 1.2985, chg: -0.0022, pct: -0.17, high: 1.3020, low: 1.2970, trend: [1.3015, 1.3005, 1.2995, 1.2982, 1.2980, 1.2985] },
+
+          // Commodities
+          { category: 'COMMODITIES & ENERGY', sym: 'BRENT', name: 'Brent Crude Oil (bbl)', last: 74.22, chg: 0.82, pct: 1.12, high: 74.80, low: 73.15, trend: [73.20, 73.50, 73.80, 74.10, 74.05, 74.22] },
+          { category: 'COMMODITIES & ENERGY', sym: 'WTI', name: 'WTI Light Sweet Crude', last: 70.35, chg: 0.74, pct: 1.06, high: 70.90, low: 69.40, trend: [69.45, 69.80, 70.10, 70.25, 70.20, 70.35] },
+          { category: 'COMMODITIES & ENERGY', sym: 'GOLD', name: 'Gold Spot ($/oz)', last: 2721.40, chg: 9.60, pct: 0.35, high: 2735.00, low: 2712.50, trend: [2715, 2720, 2728, 2724, 2718, 2721] },
+          { category: 'COMMODITIES & ENERGY', sym: 'COPPER', name: 'High Grade Copper ($/lb)', last: 4.382, chg: 0.045, pct: 1.04, high: 4.410, low: 4.325, trend: [4.330, 4.345, 4.360, 4.375, 4.370, 4.382] },
+        ],
+
+        sectors: [
+          { name: 'Technology', etf: 'XLK', pct: 1.42 },
+          { name: 'Communication Services', etf: 'XLC', pct: 0.88 },
+          { name: 'Financials', etf: 'XLF', pct: 0.45 },
+          { name: 'Industrials', etf: 'XLI', pct: 0.18 },
+          { name: 'Consumer Discretionary', etf: 'XLY', pct: -0.12 },
+          { name: 'Health Care', etf: 'XLV', pct: -0.34 },
+          { name: 'Materials', etf: 'XLB', pct: -0.58 },
+          { name: 'Utilities', etf: 'XLU', pct: -0.92 },
+          { name: 'Consumer Staples', etf: 'XLP', pct: -1.05 },
+          { name: 'Energy', etf: 'XLE', pct: -1.38 },
+          { name: 'Real Estate', etf: 'XLRE', pct: -1.75 },
+        ],
+
+        retailFlow: [
+          { label: 'Call / Put Ratio', val: '1.74x', note: 'Bullish Skew' },
+          { label: '0DTE Option Volume', val: '49.4%', note: 'Near Record' },
+          { label: 'Leveraged ETF Flow', val: '+$640M', note: 'Tech 3x Bull' },
+          { label: 'Meme Momentum Index', val: '74 / 100', note: 'Greed' },
+          { label: 'Margin Debt MoM', val: '+3.1%', note: 'Expanding' },
+          { label: 'Net 24H Retail Flow', val: '+$1.42B', note: 'Aggressive' },
+        ],
+
+        instFlow: [
+          { label: 'Dark Pool Tape %', val: '45.2%', note: 'Off-Exchange' },
+          { label: 'Block Buy / Sell Ratio', val: '0.82', note: 'Net Distribution' },
+          { label: 'CTA Trend Long Bias', val: '92%', note: 'Max Exposure' },
+          { label: 'Smart Money Flow Index', val: '-1.8σ', note: 'Diverging' },
+          { label: 'Hedge Fund Equity Beta', val: '0.58', note: 'Defensive' },
+          { label: 'Corporate Buyback Pace', val: '$4.2B/d', note: 'Active Window' },
+        ],
+
+        worldRisk: [
+          {
+            title: 'Strait of Hormuz Energy Chokepoint Alert',
+            category: 'GEOPOLITICS',
+            severity: 'HIGH',
+            impact: 'Brent +$4/bbl implied, Tanker rates +18%',
+            desc: 'Heightened naval alert along Gulf maritime corridors. Commercial insurers quoting war-risk surcharges.',
+          },
+          {
+            title: 'US Sovereign Debt Issuance & Term Premia Tension',
+            category: 'MACRO / RATES',
+            severity: 'ELEVATED',
+            impact: 'US10Y / 30Y spread steepening +4bps',
+            desc: 'Treasury quarterly refunding volume tests primary dealer absorption bandwidth amid ongoing Fed QT.',
+          },
+          {
+            title: 'Red Sea Commercial Freight Redirection',
+            category: 'SUPPLY CHAIN',
+            severity: 'HIGH',
+            impact: 'Global container spot rates +9.4%',
+            desc: '82% of Asia-to-Europe container traffic continuing around Cape of Good Hope, adding 10-14 days sailing.',
+          },
+          {
+            title: 'Cross-Strait Semiconductor Supply Chain Watch',
+            category: 'TECH STRATEGIC',
+            severity: 'WATCH',
+            impact: 'SOX Index tail-risk premium elevated',
+            desc: 'Naval and aerial military activity monitored around Taiwan shipping lanes; advanced node foundries undisturbed.',
+          },
+          {
+            title: 'European Winter Natural Gas Storage Drawdown Rate',
+            category: 'COMMODITIES',
+            severity: 'MODERATE',
+            impact: 'Dutch TTF Gas €39.80/MWh (+2.2%)',
+            desc: 'EU storage standing at 94.8% capacity; early winter forecast models predict below-average temperature anomaly.',
+          },
+          {
+            title: 'Bank of Japan Intervention Threshold Monitoring',
+            category: 'FX / SOVEREIGN',
+            severity: 'WATCH',
+            impact: 'USD/JPY volatility skew pricing 155.00 defense',
+            desc: 'Ministry of Finance issuing formal verbal warnings as Yen approaches historical bilateral friction markers.',
+          },
+        ],
+
+        crypto: [
+          { sym: 'BTC', name: 'Bitcoin', price: 67420.50, chg: 2.38, vol: '$32.4B', dom: '58.4%', funding: '+0.012%' },
+          { sym: 'ETH', name: 'Ethereum', price: 2642.10, chg: 1.65, vol: '$14.8B', dom: '13.9%', funding: '+0.008%' },
+          { sym: 'SOL', name: 'Solana', price: 172.85, chg: 4.82, vol: '$4.1B', dom: '3.6%', funding: '+0.018%' },
+          { sym: 'BNB', name: 'BNB Chain', price: 594.30, chg: 0.94, vol: '$1.2B', dom: '3.1%', funding: '+0.006%' },
+          { sym: 'XRP', name: 'XRP Ledger', price: 0.548, chg: -0.62, vol: '$890M', dom: '1.4%', funding: '+0.004%' },
+          { sym: 'AVAX', name: 'Avalanche', price: 28.45, chg: 3.12, vol: '$410M', dom: '0.8%', funding: '+0.011%' },
+        ],
+
+        news: [
+          { time: '19:02:40', src: 'BLOOMBERG', tag: 'URGENT', headline: 'US Treasury 10-Year Auction draws 4.082% vs 4.089% WI; Direct Bidders take 19.8%', summary: 'Yields dipped 2bps across the curve as primary dealer concession proved unnecessary amid robust overseas sovereign appetite.' },
+          { time: '18:58:12', src: 'REUTERS', tag: 'BULLISH', headline: 'Semiconductor capital equipment billings jump +14.6% YoY on AI wafer packaging surge', summary: 'Toolmakers cite accelerated capex outlays for advanced gate-all-around transistor lithography nodes.' },
+          { time: '18:51:30', src: 'DOW JONES', tag: 'BEARISH', headline: 'Commercial crude inventories print surprise +3.8M barrel build; refinery runs drop', summary: 'Seasonal turnaround maintenance combined with imports expansion pressured short-term prompt gasoline crack spreads.' },
+          { time: '18:44:05', src: 'FED WIRE', tag: 'NEUTRAL', headline: 'FOMC Regional Beige Book confirms moderate economic activity with hiring stabilizing', summary: '10 of 12 Federal Reserve districts observed flat to marginal employment changes; wage growth aligned with pre-pandemic trend.' },
+          { time: '18:36:22', src: 'WSJ', tag: 'BEARISH', headline: 'Suez Canal maritime transit volumes fall 64% YoY as carriers route via Southern Africa', summary: 'Supply chain lead times extended; European retailers buffering holiday inventory 3 weeks ahead of schedule.' },
+          { time: '18:29:18', src: 'COINDESK', tag: 'BULLISH', headline: 'Spot Bitcoin ETF net creation records +$382M in third consecutive daily inflow expansion', summary: 'BlackRock IBIT and Fidelity FBTC leading net allocations; institutional basis trade holding near 11% annualized.' },
+          { time: '18:20:00', src: 'LSEG DESK', tag: 'NEUTRAL', headline: 'European Central Bank survey shows commercial lending demand bottomed out in Q3', summary: 'Credit underwriting standards tightened slightly for commercial real estate while prime corporate borrowing stabilized.' }
+        ],
+
+        calendar: [
+          { date: 'MON 10:00', reg: 'US', event: 'ISM Manufacturing PMI', cons: '49.2', prev: '47.8', imp: '●●○' },
+          { date: 'TUE 08:30', reg: 'US', event: 'JOLTS Job Openings', cons: '7.95M', prev: '8.04M', imp: '●●○' },
+          { date: 'WED 08:30', reg: 'US', event: 'CPI YoY Core', cons: '3.3%', prev: '3.3%', imp: '●●●' },
+          { date: 'WED 14:00', reg: 'US', event: 'FOMC Meeting Minutes', cons: '---', prev: '---', imp: '●●●' },
+          { date: 'THU 08:30', reg: 'US', event: 'Initial Jobless Claims', cons: '218K', prev: '221K', imp: '●●○' },
+          { date: 'THU 14:15', reg: 'EU', event: 'ECB Deposit Facility Rate', cons: '3.25%', prev: '3.50%', imp: '●●●' },
+          { date: 'FRI 08:30', reg: 'US', event: 'Non-Farm Payrolls / Unemp', cons: '+140K / 4.1%', prev: '+254K / 4.1%', imp: '●●●' },
+        ],
+
+        feedStatus: [
+          { name: 'NYSE / NASDAQ L1 Tape', status: 'OK', latency: '6ms', throughput: '148k/s', updated: 'Just now' },
+          { name: 'CME Group Futures', status: 'OK', latency: '11ms', throughput: '92k/s', updated: 'Just now' },
+          { name: 'CBOE Options Consolidated', status: 'OK', latency: '15ms', throughput: '210k/s', updated: 'Just now' },
+          { name: 'DTCC Dark Pool Aggregator', status: 'DELAYED', latency: '145ms', throughput: '14k/s', updated: '15m ago' },
+          { name: 'ISDA Swaps & SOFR Benchmarks', status: 'OK', latency: '22ms', throughput: '4.2k/s', updated: 'Just now' },
+          { name: 'Crypto Spot Feeds Consolidated', status: 'OK', latency: '5ms', throughput: '230k/s', updated: 'Just now' },
+          { name: 'Federal Reserve Macro Wire', status: 'OK', latency: '28ms', throughput: '640/s', updated: '1m ago' },
+          { name: 'Geopolitical Satellite Intel Tape', status: 'OK', latency: '850ms', throughput: '52/s', updated: 'Just now' },
+        ],
+      };
+
+      /* ===============================================================
+         2. STATE MANAGEMENT & TIMERS
+         =============================================================== */
+      let liveSimActive = true;
+      let lastTickTime = performance.now();
+      let theme = localStorage.getItem('vterminal_theme') || 'dark';
+
+      // Apply initial theme
+      document.documentElement.setAttribute('data-theme', theme);
+
+      /* ===============================================================
+         3. LIVE CLOCKS & MARKET SESSIONS
+         =============================================================== */
+      function updateClocks() {
+        const now = new Date();
+
+        // Display NYC Time
+        const nyStr = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false });
+        const nyClockElem = document.getElementById('clock-ny');
+        if (nyClockElem) nyClockElem.textContent = `${nyStr} EDT`;
+
+        // Display UTC Time
+        const utcHours = String(now.getUTCHours()).padStart(2, '0');
+        const utcMins = String(now.getUTCMinutes()).padStart(2, '0');
+        const utcSecs = String(now.getUTCSeconds()).padStart(2, '0');
+        const utcClockElem = document.getElementById('clock-utc');
+        if (utcClockElem) utcClockElem.textContent = `${utcHours}:${utcMins}:${utcSecs} UTC`;
+
+        // Update sessions strip times & open/closed status
+        // New York (NYSE: 09:30 - 16:00 ET, Mon-Fri)
+        const nyDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+        const nyHour = nyDate.getHours();
+        const nyMinute = nyDate.getMinutes();
+        const nyDay = nyDate.getDay(); // 0 is Sunday, 6 is Saturday
+        const isNyWeekday = nyDay >= 1 && nyDay <= 5;
+        const nyMinsFromMidnight = nyHour * 60 + nyMinute;
+        const nyOpenMins = 9 * 60 + 30; // 09:30
+        const nyCloseMins = 16 * 60;     // 16:00
+        const isNyOpen = isNyWeekday && nyMinsFromMidnight >= nyOpenMins && nyMinsFromMidnight < nyCloseMins;
+
+        document.getElementById('time-ny').textContent = `${String(nyHour).padStart(2, '0')}:${String(nyMinute).padStart(2, '0')}`;
+        const statusNy = document.getElementById('status-ny');
+        if (statusNy) {
+          statusNy.className = isNyOpen ? 'session-status session-status-open' : 'session-status session-status-closed';
+          statusNy.textContent = isNyOpen ? '● OPEN' : '○ CLSD';
+        }
+
+        // London (08:00 - 16:30 GMT)
+        const lonDate = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/London' }));
+        const lonHour = lonDate.getHours();
+        const lonMin = lonDate.getMinutes();
+        const isLonOpen = lonDate.getDay() >= 1 && lonDate.getDay() <= 5 && (lonHour > 8 || (lonHour === 8 && lonMin >= 0)) && (lonHour < 16 || (lonHour === 16 && lonMin <= 30));
+        document.getElementById('time-lon').textContent = `${String(lonHour).padStart(2, '0')}:${String(lonMin).padStart(2, '0')}`;
+        const statusLon = document.getElementById('status-lon');
+        if (statusLon) {
+          statusLon.className = isLonOpen ? 'session-status session-status-open' : 'session-status session-status-closed';
+          statusLon.textContent = isLonOpen ? '● OPEN' : '○ CLSD';
+        }
+
+        // Tokyo (09:00 - 15:00 JST)
+        const tyoDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+        const tyoHour = tyoDate.getHours();
+        const tyoMin = tyoDate.getMinutes();
+        const isTyoOpen = tyoDate.getDay() >= 1 && tyoDate.getDay() <= 5 && tyoHour >= 9 && tyoHour < 15;
+        document.getElementById('time-tyo').textContent = `${String(tyoHour).padStart(2, '0')}:${String(tyoMin).padStart(2, '0')}`;
+        const statusTyo = document.getElementById('status-tyo');
+        if (statusTyo) {
+          statusTyo.className = isTyoOpen ? 'session-status session-status-open' : 'session-status session-status-closed';
+          statusTyo.textContent = isTyoOpen ? '● OPEN' : '○ CLSD';
+        }
+
+        // Hong Kong (09:30 - 16:00 HKT)
+        const hkDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Hong_Kong' }));
+        const hkHour = hkDate.getHours();
+        const hkMin = hkDate.getMinutes();
+        const isHkOpen = hkDate.getDay() >= 1 && hkDate.getDay() <= 5 && ((hkHour === 9 && hkMin >= 30) || (hkHour >= 10 && hkHour < 16));
+        document.getElementById('time-hk').textContent = `${String(hkHour).padStart(2, '0')}:${String(hkMin).padStart(2, '0')}`;
+        const statusHk = document.getElementById('status-hk');
+        if (statusHk) {
+          statusHk.className = isHkOpen ? 'session-status session-status-open' : 'session-status session-status-closed';
+          statusHk.textContent = isHkOpen ? '● OPEN' : '○ CLSD';
+        }
+
+        // Frankfurt (09:00 - 17:30 CET)
+        const fraDate = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+        const fraHour = fraDate.getHours();
+        const fraMin = fraDate.getMinutes();
+        const isFraOpen = fraDate.getDay() >= 1 && fraDate.getDay() <= 5 && fraHour >= 9 && (fraHour < 17 || (fraHour === 17 && fraMin <= 30));
+        document.getElementById('time-fra').textContent = `${String(fraHour).padStart(2, '0')}:${String(fraMin).padStart(2, '0')}`;
+        const statusFra = document.getElementById('status-fra');
+        if (statusFra) {
+          statusFra.className = isFraOpen ? 'session-status session-status-open' : 'session-status session-status-closed';
+          statusFra.textContent = isFraOpen ? '● OPEN' : '○ CLSD';
+        }
+
+        // Countdown to next NY Open or Close
+        const countdownLabel = document.getElementById('ny-countdown-label');
+        const countdownTimer = document.getElementById('ny-countdown-timer');
+
+        let targetMinutes = 0;
+        let isWaitingForOpen = true;
+
+        if (isNyOpen) {
+          isWaitingForOpen = false;
+          targetMinutes = nyCloseMins - nyMinsFromMidnight;
+          countdownLabel.textContent = 'NEXT NY CLOSE:';
+        } else {
+          isWaitingForOpen = true;
+          countdownLabel.textContent = 'NEXT NY OPEN:';
+          if (nyMinsFromMidnight < nyOpenMins && isNyWeekday) {
+            targetMinutes = nyOpenMins - nyMinsFromMidnight;
+          } else {
+            // After close or on weekend: calculate remaining minutes to next day 09:30
+            const minsToMidnight = (24 * 60) - nyMinsFromMidnight;
+            targetMinutes = minsToMidnight + nyOpenMins;
+            if (nyDay === 5) targetMinutes += (48 * 60); // Friday night to Monday morning
+            else if (nyDay === 6) targetMinutes += (24 * 60); // Saturday to Monday
+          }
+        }
+
+        const cdHours = Math.floor(targetMinutes / 60);
+        const cdMins = Math.floor(targetMinutes % 60);
+        const cdSecs = 59 - nyDate.getSeconds();
+        countdownTimer.textContent = `${String(cdHours).padStart(2, '0')}h ${String(cdMins).padStart(2, '0')}m ${String(Math.max(0, cdSecs)).padStart(2, '0')}s`;
+      }
+
+      // Update Data Age indicator smoothly
+      function updateDataAge() {
+        const diffMs = performance.now() - lastTickTime;
+        const sec = (diffMs / 1000).toFixed(1);
+        const el = document.getElementById('data-age-display');
+        if (el) el.textContent = `${sec}s`;
+      }
+
+      setInterval(updateClocks, 1000);
+      setInterval(updateDataAge, 100);
+      updateClocks();
+
+      /* ===============================================================
+         4. RENDERERS FOR PANELS
+         =============================================================== */
+
+      // Helper: Mini SVG sparkline generator
+      function generateSparklineSvg(points, isUp) {
+        if (!points || points.length < 2) return '';
+        const min = Math.min(...points);
+        const max = Math.max(...points);
+        const range = max - min || 1;
+        const width = 54;
+        const height = 14;
+        const padding = 2;
+
+        const coords = points.map((val, idx) => {
+          const x = padding + (idx / (points.length - 1)) * (width - 2 * padding);
+          const y = height - padding - ((val - min) / range) * (height - 2 * padding);
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+
+        const color = isUp ? 'var(--up)' : 'var(--down)';
+        return `<svg class="sparkline-svg" viewBox="0 0 ${width} ${height}"><polyline fill="none" stroke="${color}" stroke-width="1.3" points="${coords}"/></svg>`;
+      }
+
+      // Render Markets Table & Ticker Tape
+      function renderMarkets() {
+        const tbody = document.getElementById('markets-tbody');
+        const tape = document.getElementById('ticker-tape-content');
+        if (!tbody || !tape) return;
+
+        let tableHtml = '';
+        let tapeHtml = '';
+        let currentCat = '';
+
+        VTERMINAL_DATA.markets.forEach((m, idx) => {
+          if (m.category !== currentCat) {
+            currentCat = m.category;
+            tableHtml += `<tr class="table-cat-header"><td colspan="8">${currentCat}</td></tr>`;
+          }
+
+          const isUp = m.pct >= 0;
+          const colorClass = isUp ? 'text-up' : 'text-down';
+          const sign = isUp ? '+' : '';
+          const formattedLast = m.last < 10 ? m.last.toFixed(4) : m.last.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const formattedChg = m.last < 10 ? m.chg.toFixed(4) : m.chg.toFixed(2);
+          const sparkSvg = generateSparklineSvg(m.trend, isUp);
+
+          tableHtml += `
+            <tr id="mkt-row-${idx}">
+              <td class="font-condensed font-bold" style="letter-spacing:0.04em;">${m.sym}</td>
+              <td class="text-dim" style="font-size:10.5px;">${m.name}</td>
+              <td class="num font-bold" id="mkt-last-${idx}">${formattedLast}</td>
+              <td class="num ${colorClass}" id="mkt-chg-${idx}">${sign}${formattedChg}</td>
+              <td class="num font-bold ${colorClass}" id="mkt-pct-${idx}">${sign}${m.pct.toFixed(2)}%</td>
+              <td class="num text-dim">${m.high < 10 ? m.high.toFixed(4) : m.high.toLocaleString()}</td>
+              <td class="num text-dim">${m.low < 10 ? m.low.toFixed(4) : m.low.toLocaleString()}</td>
+              <td class="num" id="mkt-spark-${idx}">${sparkSvg}</td>
+            </tr>
+          `;
+
+          // Ticker Tape Item
+          tapeHtml += `
+            <div class="ticker-item">
+              <span class="ticker-sym">${m.sym}</span>
+              <span>${formattedLast}</span>
+              <span class="${colorClass}">${sign}${m.pct.toFixed(2)}%</span>
+              <span class="text-dim">|</span>
+            </div>
+          `;
+        });
+
+        tbody.innerHTML = tableHtml;
+        // Duplicate tape items for smooth continuous loop marquee
+        tape.innerHTML = tapeHtml + tapeHtml;
+      }
+
+      // Render Sectors with Diverging Bars
+      function renderSectors() {
+        const container = document.getElementById('sectors-container');
+        if (!container) return;
+
+        let html = '';
+        const maxRange = 3.0; // +/- 3% full width scale
+
+        VTERMINAL_DATA.sectors.forEach((s, idx) => {
+          const isUp = s.pct >= 0;
+          const colorClass = isUp ? 'text-up' : 'text-down';
+          const sign = isUp ? '+' : '';
+
+          // Width percentage from center (0 to 50%)
+          const barWidth = Math.min(50, (Math.abs(s.pct) / maxRange) * 50);
+
+          html += `
+            <div class="sector-row" id="sector-row-${idx}">
+              <span class="sector-name font-condensed font-semibold">${s.name}</span>
+              <span class="sector-sym">${s.etf}</span>
+              <span class="${colorClass} font-bold" style="text-align: right;" id="sector-pct-${idx}">${sign}${s.pct.toFixed(2)}%</span>
+              <div class="diverging-bar-track">
+                <div class="diverging-midline"></div>
+                <div class="diverging-bar-fill ${isUp ? 'fill-up' : 'fill-down'}" style="width: ${barWidth}%;" id="sector-bar-${idx}"></div>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      }
+
+      // Render Retail vs Institutions KPI Panels
+      function renderFlows() {
+        const rContainer = document.getElementById('retail-kpis');
+        const iContainer = document.getElementById('inst-kpis');
+
+        if (rContainer) {
+          rContainer.innerHTML = VTERMINAL_DATA.retailFlow.map(item => `
+            <div class="kpi-card">
+              <div class="kpi-label">${item.label}</div>
+              <div class="kpi-val text-up">${item.val}</div>
+              <div class="text-dim" style="font-size: 9.5px;">${item.note}</div>
+            </div>
+          `).join('');
+        }
+
+        if (iContainer) {
+          iContainer.innerHTML = VTERMINAL_DATA.instFlow.map(item => `
+            <div class="kpi-card">
+              <div class="kpi-label">${item.label}</div>
+              <div class="kpi-val text-down">${item.val}</div>
+              <div class="text-dim" style="font-size: 9.5px;">${item.note}</div>
+            </div>
+          `).join('');
+        }
+      }
+
+      // Render World Risk Items
+      function renderWorldRisk() {
+        const container = document.getElementById('risk-container');
+        if (!container) return;
+
+        container.innerHTML = VTERMINAL_DATA.worldRisk.map(r => {
+          let sevClass = 'sev-watch';
+          if (r.severity === 'HIGH') sevClass = 'sev-high';
+          else if (r.severity === 'ELEVATED') sevClass = 'sev-elevated';
+          else if (r.severity === 'MODERATE') sevClass = 'sev-moderate';
+
+          return `
+            <div class="risk-item">
+              <div>
+                <span class="severity-badge ${sevClass}">${r.severity}</span>
+                <div class="text-dim" style="font-size: 9.5px; margin-top: 3px;">${r.category}</div>
+              </div>
+              <div>
+                <div style="font-weight: 700; color: var(--text);">${r.title}</div>
+                <div class="risk-desc text-dim">${r.desc}</div>
+              </div>
+              <div class="risk-impact font-condensed">
+                <span style="color: var(--amber); font-weight: 600;">IMPACT:</span>
+                <div>${r.impact}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render Crypto Spot Table
+      function renderCrypto() {
+        const tbody = document.getElementById('crypto-tbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = VTERMINAL_DATA.crypto.map((c, idx) => {
+          const isUp = c.chg >= 0;
+          const colorClass = isUp ? 'text-up' : 'text-down';
+          const sign = isUp ? '+' : '';
+          const formattedPrice = c.price < 1 ? c.price.toFixed(4) : c.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+          return `
+            <tr id="crypto-row-${idx}">
+              <td>
+                <span class="font-condensed font-bold" style="letter-spacing:0.04em;">${c.sym}</span>
+                <span class="text-dim" style="font-size:10px; margin-left:4px;">${c.name}</span>
+              </td>
+              <td class="num font-bold" id="crypto-price-${idx}">$${formattedPrice}</td>
+              <td class="num font-bold ${colorClass}" id="crypto-chg-${idx}">${sign}${c.chg.toFixed(2)}%</td>
+              <td class="num text-dim">${c.vol}</td>
+              <td class="num">${c.dom}</td>
+              <td class="num ${c.funding.startsWith('+') ? 'text-up' : 'text-down'}">${c.funding}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Render News Tape
+      let currentNewsFilter = 'all';
+      function renderNews() {
+        const container = document.getElementById('news-tape-container');
+        if (!container) return;
+
+        const filtered = VTERMINAL_DATA.news.filter(n => {
+          if (currentNewsFilter === 'all') return true;
+          return n.tag.toLowerCase() === currentNewsFilter.toLowerCase();
+        });
+
+        document.getElementById('news-counter').textContent = `${filtered.length} HEADLINES`;
+
+        container.innerHTML = filtered.map((n, idx) => {
+          let tagClass = 'tag-neutral';
+          if (n.tag === 'BULLISH') tagClass = 'tag-bullish';
+          else if (n.tag === 'BEARISH') tagClass = 'tag-bearish';
+          else if (n.tag === 'URGENT') tagClass = 'tag-urgent';
+
+          return `
+            <div class="news-row" onclick="toggleNewsSummary(${idx})">
+              <span class="news-time">${n.time}</span>
+              <span class="news-src">${n.src}</span>
+              <span class="news-headline" title="${n.headline}">${n.headline}</span>
+              <span class="news-tag ${tagClass}">${n.tag}</span>
+            </div>
+            <div id="news-summary-${idx}" style="display: none; padding: 4px 10px 8px 66px; font-size: 10.5px; color: var(--amber); background: var(--panel-solid); border-bottom: 1px solid var(--border);">
+              <span>ANALYSIS: ${n.summary}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function toggleNewsSummary(idx) {
+        const el = document.getElementById(`news-summary-${idx}`);
+        if (el) {
+          el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+      }
+
+      // Render Macro Calendar
+      function renderCalendar() {
+        const tbody = document.getElementById('calendar-tbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = VTERMINAL_DATA.calendar.map(c => `
+          <tr>
+            <td class="font-condensed font-bold">${c.date}</td>
+            <td><span class="sample-pill" style="font-size: 9px; padding: 0 3px;">${c.reg}</span></td>
+            <td style="color: var(--text);">${c.event}</td>
+            <td class="num font-bold text-amber">${c.cons}</td>
+            <td class="num text-dim">${c.prev}</td>
+            <td class="num font-bold" style="color: ${c.imp.includes('●●●') ? 'var(--down)' : 'var(--amber)'}">${c.imp}</td>
+          </tr>
+        `).join('');
+      }
+
+      // Render Feed Status
+      function renderFeedStatus() {
+        const container = document.getElementById('feeds-grid-container');
+        if (!container) return;
+
+        container.innerHTML = VTERMINAL_DATA.feedStatus.map(f => {
+          let statusClass = 'feed-status-ok';
+          if (f.status === 'DELAYED') statusClass = 'feed-status-delayed';
+          else if (f.status === 'STALE') statusClass = 'feed-status-stale';
+
+          return `
+            <div class="feed-card">
+              <div>
+                <div class="feed-name font-condensed">${f.name}</div>
+                <div class="text-dim" style="font-size: 9.5px;">LAT: ${f.latency} · TP: ${f.throughput}</div>
+              </div>
+              <div class="feed-meta">
+                <span class="${statusClass}">● ${f.status}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      /* ===============================================================
+         5. REAL-TIME TICK SIMULATION
+         Prices move slightly every few seconds, flashing green or red
+         =============================================================== */
+      function executeSimulatedTick() {
+        if (!liveSimActive) return;
+
+        // Reset data age timer to 0.0s
+        lastTickTime = performance.now();
+
+        // 1. Tick 2-3 random markets
+        const mktIndices = [
+          Math.floor(Math.random() * VTERMINAL_DATA.markets.length),
+          Math.floor(Math.random() * VTERMINAL_DATA.markets.length)
+        ];
+
+        mktIndices.forEach(idx => {
+          const item = VTERMINAL_DATA.markets[idx];
+          if (!item) return;
+
+          const deltaFactor = (Math.random() - 0.49) * 0.003; // +/- 0.15%
+          const prevLast = item.last;
+          item.last = +(item.last * (1 + deltaFactor));
+
+          const isUp = item.last >= prevLast;
+          const priceDiff = item.last - (item.high + item.low) / 2;
+          item.chg += (item.last - prevLast);
+          item.pct = +((item.chg / (item.last - item.chg)) * 100);
+
+          if (item.last > item.high) item.high = item.last;
+          if (item.last < item.low) item.low = item.last;
+
+          item.trend.shift();
+          item.trend.push(item.last);
+
+          // Update DOM cells & trigger momentary flash
+          const lastEl = document.getElementById(`mkt-last-${idx}`);
+          const chgEl = document.getElementById(`mkt-chg-${idx}`);
+          const pctEl = document.getElementById(`mkt-pct-${idx}`);
+          const sparkEl = document.getElementById(`mkt-spark-${idx}`);
+
+          if (lastEl) {
+            lastEl.textContent = item.last < 10 ? item.last.toFixed(4) : item.last.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            lastEl.classList.remove('flash-up', 'flash-down');
+            void lastEl.offsetWidth; // trigger reflow
+            lastEl.classList.add(isUp ? 'flash-up' : 'flash-down');
+          }
+
+          if (chgEl) {
+            const sign = item.pct >= 0 ? '+' : '';
+            chgEl.textContent = `${sign}${item.last < 10 ? item.chg.toFixed(4) : item.chg.toFixed(2)}`;
+            chgEl.className = `num ${item.pct >= 0 ? 'text-up' : 'text-down'}`;
+          }
+
+          if (pctEl) {
+            const sign = item.pct >= 0 ? '+' : '';
+            pctEl.textContent = `${sign}${item.pct.toFixed(2)}%`;
+            pctEl.className = `num font-bold ${item.pct >= 0 ? 'text-up' : 'text-down'}`;
+          }
+
+          if (sparkEl) {
+            sparkEl.innerHTML = generateSparklineSvg(item.trend, item.pct >= 0);
+          }
+        });
+
+        // 2. Tick 1 random crypto asset
+        const cryptoIdx = Math.floor(Math.random() * VTERMINAL_DATA.crypto.length);
+        const cItem = VTERMINAL_DATA.crypto[cryptoIdx];
+        if (cItem) {
+          const cDelta = (Math.random() - 0.49) * 0.005;
+          const prevPrice = cItem.price;
+          cItem.price = +(cItem.price * (1 + cDelta));
+          const isUp = cItem.price >= prevPrice;
+          cItem.chg += (cDelta * 100);
+
+          const cPriceEl = document.getElementById(`crypto-price-${cryptoIdx}`);
+          const cChgEl = document.getElementById(`crypto-chg-${cryptoIdx}`);
+
+          if (cPriceEl) {
+            cPriceEl.textContent = `$${cItem.price < 1 ? cItem.price.toFixed(4) : cItem.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            cPriceEl.classList.remove('flash-up', 'flash-down');
+            void cPriceEl.offsetWidth;
+            cPriceEl.classList.add(isUp ? 'flash-up' : 'flash-down');
+          }
+          if (cChgEl) {
+            const sign = cItem.chg >= 0 ? '+' : '';
+            cChgEl.textContent = `${sign}${cItem.chg.toFixed(2)}%`;
+            cChgEl.className = `num font-bold ${cItem.chg >= 0 ? 'text-up' : 'text-down'}`;
+          }
+        }
+
+        // 3. Tick 1 sector
+        const sectorIdx = Math.floor(Math.random() * VTERMINAL_DATA.sectors.length);
+        const sItem = VTERMINAL_DATA.sectors[sectorIdx];
+        if (sItem) {
+          const sDelta = (Math.random() - 0.48) * 0.08;
+          sItem.pct += sDelta;
+
+          const sPctEl = document.getElementById(`sector-pct-${sectorIdx}`);
+          const sBarEl = document.getElementById(`sector-bar-${sectorIdx}`);
+
+          if (sPctEl) {
+            const isUp = sItem.pct >= 0;
+            const sign = isUp ? '+' : '';
+            sPctEl.textContent = `${sign}${sItem.pct.toFixed(2)}%`;
+            sPctEl.className = `${isUp ? 'text-up' : 'text-down'} font-bold`;
+
+            if (sBarEl) {
+              const maxRange = 3.0;
+              const barWidth = Math.min(50, (Math.abs(sItem.pct) / maxRange) * 50);
+              sBarEl.style.width = `${barWidth}%`;
+              sBarEl.className = `diverging-bar-fill ${isUp ? 'fill-up' : 'fill-down'}`;
+            }
+          }
+        }
+      }
+
+      // Start periodic price movement ticks every 2.6 seconds
+      let tickInterval = setInterval(executeSimulatedTick, 2600);
+
+      /* ===============================================================
+         6. AMBIENT BACKGROUND CANVAS ANIMATION
+         Faint, subtle, non-distracting animated nodes in theme colors
+         =============================================================== */
+      (function setupAmbientCanvas() {
+        const canvas = document.getElementById('ambient-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        const particles = [];
+        const count = 42;
+
+        function resize() {
+          width = canvas.width = window.innerWidth;
+          height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 0.25,
+            vy: (Math.random() - 0.5) * 0.25,
+            size: Math.random() * 1.5 + 0.8,
+          });
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, width, height);
+
+          // Get colors from CSS variables
+          const style = getComputedStyle(document.documentElement);
+          const particleColor = style.getPropertyValue('--canvas-particle').trim() || 'rgba(142, 167, 200, 0.15)';
+          const lineColor = style.getPropertyValue('--canvas-line').trim() || 'rgba(30, 35, 43, 0.3)';
+
+          // Subtle horizontal grid lines
+          ctx.strokeStyle = lineColor;
+          ctx.lineWidth = 0.5;
+          const gridGap = 64;
+          for (let y = 0; y < height; y += gridGap) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+          }
+
+          // Draw particles & faint connection links
+          ctx.fillStyle = particleColor;
+          for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+
+            if (p.x < 0) p.x = width;
+            if (p.x > width) p.x = 0;
+            if (p.y < 0) p.y = height;
+            if (p.y > height) p.y = 0;
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Link nearest particles
+            for (let j = i + 1; j < particles.length; j++) {
+              const p2 = particles[j];
+              const dx = p.x - p2.x;
+              const dy = p.y - p2.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < 130) {
+                ctx.strokeStyle = particleColor;
+                ctx.lineWidth = 0.4 * (1 - dist / 130);
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+              }
+            }
+          }
+
+          requestAnimationFrame(draw);
+        }
+
+        requestAnimationFrame(draw);
+      })();
+
+      /* ===============================================================
+         7. COMMAND LINE & GEMINI STREAMING (PANEL 9)
+         Built-ins: help, status, theme, clear
+         Anything else streams from Gemini API in terminal style
+         =============================================================== */
+      const termOutput = document.getElementById('term-output');
+      const termInput = document.getElementById('term-input');
+      const commandHistory = [];
+      let historyIndex = -1;
+
+      function printToTerminal(text, isUser = false) {
+        if (!termOutput) return;
+        const entry = document.createElement('div');
+        entry.style.marginBottom = '8px';
+        if (isUser) {
+          entry.style.color = 'var(--amber)';
+          entry.style.fontWeight = '700';
+          entry.textContent = `V.TERM> ${text}`;
+        } else {
+          entry.textContent = text;
+        }
+        termOutput.appendChild(entry);
+        termOutput.scrollTop = termOutput.scrollHeight;
+      }
+
+      // Initial terminal boot text
+      printToTerminal(
+`================================================================================
+V.TERMINAL QUANTITATIVE MARKET INTELLIGENCE CORE v2.8.4 [READY]
+SESSION ESTABLISHED: ${new Date().toISOString()} | CRYPTO/L1/SWAPS FEED OK
+Type 'help' for terminal commands, or enter any query to stream Gemini AI intelligence.
+================================================================================`
+      );
+
+      // Handle terminal command execution
+      async function executeCommand(rawCommand) {
+        const cmd = rawCommand.trim();
+        if (!cmd) return;
+
+        commandHistory.push(cmd);
+        historyIndex = commandHistory.length;
+
+        printToTerminal(cmd, true);
+
+        const lower = cmd.toLowerCase();
+
+        // 1. Built-in: HELP
+        if (lower === 'help') {
+          printToTerminal(
+`--------------------------------------------------------------------------------
+V.TERMINAL BUILT-IN COMMANDS:
+  help     : Displays this command summary and terminal manual.
+  status   : Prints real-time feed latencies, system uptime, and memory statistics.
+  theme    : Toggles between Dark and Light terminal modes (or: 'theme dark', 'theme light').
+  clear    : Clears the terminal screen buffer.
+
+INTELLIGENCE QUERIES (GEMINI 3.8 FLASH):
+  Any other query is transmitted to the server-side Gemini intelligence engine.
+  The model generates institutional macro analysis, volatility assessments,
+  or asset cross-impact breakdowns, streamed directly into this console.
+
+HOTKEYS & NAVIGATION:
+  UP/DOWN  : Browse previous command history.
+  ESC      : Clear current command line input.
+--------------------------------------------------------------------------------`
+          );
+          return;
+        }
+
+        // 2. Built-in: CLEAR
+        if (lower === 'clear') {
+          termOutput.innerHTML = '';
+          return;
+        }
+
+        // 3. Built-in: THEME
+        if (lower === 'theme' || lower.startsWith('theme ')) {
+          if (lower === 'theme dark') {
+            setTerminalTheme('dark');
+          } else if (lower === 'theme light') {
+            setTerminalTheme('light');
+          } else {
+            toggleTerminalTheme();
+          }
+          printToTerminal(`[SYSTEM] Terminal color theme updated to: ${theme.toUpperCase()}`);
+          return;
+        }
+
+        // 4. Built-in: STATUS
+        if (lower === 'status') {
+          const nowStr = new Date().toISOString();
+          printToTerminal(
+`--------------------------------------------------------------------------------
+[SYSTEM DIAGNOSTICS & TELEMETRY REPORT]
+TIMESTAMP        : ${nowStr}
+CORE RUNTIME     : V.TERMINAL NODE v2.8 (Full-Stack Express + Vite)
+ACTIVE THEME     : ${theme.toUpperCase()}
+FEED PIPELINE    : 8 OF 8 ADAPTERS NOMINAL (1 DELAYED BY EXCHANGE RULE)
+TICK INTERVAL    : 2.6s (ACTIVE)
+DATA AGE JITTER  : ~0.1s
+AI ENGINE MODEL  : gemini-3.8-flash (Streaming SSE Proxy)
+MEMORY ALLOC     : 42.8 MB / BUFFER CAPACITY 10,000 LINES
+FEED SUMMARY:
+  - NYSE / NASDAQ L1    : 6ms OK
+  - CME Group Futures   : 11ms OK
+  - CBOE Options Tape   : 15ms OK
+  - DTCC Dark Pool Agg  : 145ms (15M REGULATORY DELAY)
+--------------------------------------------------------------------------------`
+          );
+          return;
+        }
+
+        // 5. Send to Gemini AI via SSE Streaming Endpoint
+        const streamContainer = document.createElement('div');
+        streamContainer.style.marginBottom = '10px';
+        streamContainer.style.color = 'var(--text)';
+        streamContainer.textContent = `[V.TERMINAL QUERY DISPATCHED: "${cmd}"]\nConnecting to quantitative model...\n`;
+        termOutput.appendChild(streamContainer);
+        termOutput.scrollTop = termOutput.scrollHeight;
+
+        // Collect brief market snapshot for grounded context
+        const marketSnapshot = VTERMINAL_DATA.markets
+          .map(m => `${m.sym}: ${m.last} (${m.pct >= 0 ? '+' : ''}${m.pct.toFixed(2)}%)`)
+          .slice(0, 10)
+          .join(', ');
+
+        try {
+          const response = await fetch('/api/terminal/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: cmd, marketContext: marketSnapshot })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Server returned status ${response.status}`);
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let accumulated = `\n`;
+          streamContainer.textContent = accumulated;
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const jsonStr = line.slice(6).trim();
+                if (!jsonStr) continue;
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  if (parsed.text) {
+                    accumulated += parsed.text;
+                    streamContainer.textContent = accumulated;
+                    termOutput.scrollTop = termOutput.scrollHeight;
+                  }
+                } catch (e) {
+                  // Ignore SSE parse frame errors
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Terminal query error:', err);
+          streamContainer.textContent += `\n[ERROR: AI QUERY FAILED OR CANNOT REACH SERVER BACKEND]\nDetails: ${err.message || 'Stream interrupted'}\nUse built-in commands (help, status, theme, clear).\n`;
+        }
+      }
+
+      function handleTerminalSubmit(e) {
+        e.preventDefault();
+        const input = document.getElementById('term-input');
+        if (!input) return;
+        const val = input.value;
+        input.value = '';
+        executeCommand(val);
+      }
+
+      // Terminal history navigation (UP/DOWN arrow keys)
+      termInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (historyIndex > 0) {
+            historyIndex--;
+            termInput.value = commandHistory[historyIndex] || '';
+          }
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (historyIndex < commandHistory.length - 1) {
+            historyIndex++;
+            termInput.value = commandHistory[historyIndex] || '';
+          } else {
+            historyIndex = commandHistory.length;
+            termInput.value = '';
+          }
+        } else if (e.key === 'Escape') {
+          termInput.value = '';
+        }
+      });
+
+      // Wire hint chips
+      document.querySelectorAll('.term-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cmd = btn.getAttribute('data-cmd');
+          if (cmd) {
+            termInput.value = cmd;
+            termInput.focus();
+          }
+        });
+      });
+
+      /* ===============================================================
+         8. THEME TOGGLING & CONTROLS
+         =============================================================== */
+      function setTerminalTheme(newTheme) {
+        theme = newTheme;
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('vterminal_theme', theme);
+        const label = document.getElementById('theme-btn-label');
+        if (label) label.textContent = `THEME: ${theme.toUpperCase()}`;
+      }
+
+      function toggleTerminalTheme() {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        setTerminalTheme(next);
+      }
+
+      const btnTheme = document.getElementById('btn-theme');
+      btnTheme?.addEventListener('click', toggleTerminalTheme);
+      // Initialize theme button text
+      const themeLabel = document.getElementById('theme-btn-label');
+      if (themeLabel) themeLabel.textContent = `THEME: ${theme.toUpperCase()}`;
+
+      // Feed toggle button (Pause / Resume live simulation)
+      const btnFeed = document.getElementById('btn-toggle-feed');
+      btnFeed?.addEventListener('click', () => {
+        liveSimActive = !liveSimActive;
+        if (liveSimActive) {
+          btnFeed.className = 'btn btn-active';
+          btnFeed.innerHTML = '<span>● FEED: LIVE</span>';
+        } else {
+          btnFeed.className = 'btn';
+          btnFeed.innerHTML = '<span>○ FEED: PAUSED</span>';
+        }
+      });
+
+      // News filter buttons
+      document.querySelectorAll('[data-news-filter]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('[data-news-filter]').forEach(b => b.classList.remove('btn-active'));
+          btn.classList.add('btn-active');
+          currentNewsFilter = btn.getAttribute('data-news-filter') || 'all';
+          renderNews();
+        });
+      });
+
+      /* ===============================================================
+         9. INITIAL RENDER
+         =============================================================== */
+      renderMarkets();
+      renderSectors();
+      renderFlows();
+      renderWorldRisk();
+      renderCrypto();
+      renderNews();
+      renderCalendar();
+      renderFeedStatus();
+
+    </script>
+  </body>
+</html>

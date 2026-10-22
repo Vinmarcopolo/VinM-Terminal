@@ -1,0 +1,7 @@
+{
+  "name": "V.TERMINAL",
+  "description": "Bloomberg-style market intelligence terminal with dense multi-asset tracking, macro risks, order flow, live tape, and terminal AI command line.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
